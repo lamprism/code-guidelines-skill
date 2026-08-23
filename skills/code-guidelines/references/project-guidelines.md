@@ -188,16 +188,18 @@ If the admission conditions are not satisfied, the rule SHOULD NOT be added as p
 
 A project-specific guideline document MAY use the following structure when applicable:
 
-    # Project Coding Guidelines
+```markdown
+# Project Coding Guidelines
 
-    ## Architecture
-    ## Domain Conventions
-    ## Persistence
-    ## API And Protocols
-    ## Java And Framework Conventions
-    ## Build And Tooling
-    ## Testing
-    ## Frontend
-    ## Project-Specific Exceptions
+## Architecture
+## Domain Conventions
+## Persistence
+## API And Protocols
+## Framework Conventions
+## Build And Tooling
+## Testing
+## Frontend
+## Project-Specific Exceptions
+```
 
 Empty sections for technologies, layers, or architectural areas the repository does not use SHOULD NOT be created.

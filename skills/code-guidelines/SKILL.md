@@ -1,3 +1,8 @@
+---
+name: code-guidelines
+description: Use for software engineering tasks that require evidence-driven design and implementation guidance, including feature development, bug investigation, code review, refactoring, testing, security-sensitive changes, HTTP API design, database and persistence changes, Java or Kotlin code, and repository-specific engineering decisions.
+---
+
 # Code Guidelines
 
 Use this skill for code analysis, feature implementation, bug investigation, code review, refactoring, testing, and security-sensitive engineering work.
