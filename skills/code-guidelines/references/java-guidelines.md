@@ -1,173 +1,224 @@
 # Java And JVM Guidelines
 
-These requirements apply to Java, Kotlin, and related JVM code unless a repository-specific rule explicitly overrides them.
-
-Apply the general engineering requirements in `engineering-guidelines.md` in addition to this document.
+These requirements apply to Java, Kotlin, and related JVM code. They use the normative model defined by `../SKILL.md` and supplement `engineering-guidelines.md`.
 
 ## 1. Java Code And Types
 
 ### Code Style
 
-- Import types and use their simple names. Do not use fully qualified type references in code bodies when a normal import is possible.
-- Use braces for all `if`, `for`, and `while` bodies, including single-statement bodies.
-- Put braced bodies on separate lines.
-- Write every method body across multiple lines. Do not use one-line methods such as `public ID id() { return id; }`, including accessors, factories, and anonymous-class implementations.
-- Follow the repository formatter, compiler, and static-analysis configuration.
-- Add `@author` documentation only when explicitly required by the repository. Do not introduce author tags as a universal Java convention.
+- Types MUST be imported and referenced by simple name when an unambiguous normal import is possible.
+
+**EXCEPTION:** A fully qualified type name MAY be used when required to disambiguate two necessary types with the same simple name or when the language or generated context requires it.
+
+- `if`, `for`, and `while` bodies MUST use braces, including single-statement bodies.
+- Braced bodies MUST use multi-line form.
+- Method bodies MUST use multi-line form. One-line methods such as `public ID id() { return id; }` MUST NOT be introduced, including accessors, factories, and anonymous-class implementations.
+- Repository formatter, compiler, and static-analysis configuration MUST be followed.
+- `@author` documentation MUST NOT be introduced as a universal convention.
+
+**TRIGGER:** The repository has an explicit and current author-tag convention.
+
+- Existing author-tag conventions SHOULD be followed within their verified scope.
 
 ### Nullability And Optional Values
 
-- Use one nullability annotation system consistently across the project.
-- When JSpecify is used, prefer package-level `@NullMarked` and annotate nullable exceptions with `@Nullable`.
-- Methods that may legitimately return no value must expose that possibility through the established nullability contract.
-- Collection-returning methods must return empty collections instead of `null`.
-- `Optional<T>` is recommended when it improves return-value semantics, but it is not mandatory.
-- If `Optional<T>` is used, use it only as a method return type.
-- Do not use `Optional<T>` as a field type, method parameter, or collection element.
-- Do not add redundant null checks when an established non-null contract guarantees the value.
+- One nullability annotation system SHOULD be used consistently across a project.
+
+**TRIGGER:** JSpecify is the established nullability system.
+
+- `@NullMarked` SHOULD be applied at package level when that matches the project structure.
+- Nullable exceptions MUST be marked with `@Nullable` according to the established contract.
+
+- A method that may legitimately return no value MUST expose that possibility through the established nullability contract.
+- Collection-returning methods MUST return empty collections instead of `null`.
+- `Optional<T>` MAY be used when it improves return-value semantics.
+
+**TRIGGER:** `Optional<T>` is used.
+
+- It MUST be used only as a method return type.
+- It MUST NOT be used as a field type, method parameter, or collection element.
+
+- Redundant null checks MUST NOT be added when an established non-null contract guarantees the value.
 
 ### Enums And Domain Types
 
-- Use enums for stable closed sets such as error codes, statuses, modes, categories, strategies, and types.
-- Convert external string or numeric values to enums once at the system boundary.
-- Internal business logic must pass enum instances rather than repeatedly interpreting raw values.
-- Unknown external enum values must have an explicit handling strategy.
-- Do not use an enum when the value set is intentionally open or externally extensible.
-- Prefer immutable value objects for structured values that have no identity but carry meaningful invariants or semantics.
-- Do not use arrays, maps, or unrelated primitives to temporarily assemble a stable domain concept when a small value object materially improves correctness and clarity.
+- Stable closed sets such as error codes, statuses, modes, categories, strategies, and types MUST use enums or an equivalent closed JVM representation.
+- External string or numeric values MUST be converted to the enum once at the system boundary.
+- Internal business logic MUST pass the enum value rather than repeatedly interpreting the raw representation.
+- Unknown external enum values MUST have an explicit handling strategy.
+- An enum MUST NOT be used when the value set is intentionally open or externally extensible.
+- Immutable value objects SHOULD represent structured values with meaningful invariants or semantics and no independent identity.
+- Arrays, maps, or unrelated primitives SHOULD NOT be used to assemble a stable domain concept when a small value object materially improves correctness and clarity.
 
 ### Method Parameters And Collections
 
-- When a method has more than roughly four or five parameters, first determine whether the method owns too many responsibilities.
-- Introduce a request, command, context, or value object only when the parameters form a coherent domain concept.
-- Do not create generic `FooParams` or `FooArgs` containers merely to reduce parameter count.
-- Prefer immutable state unless mutation is required by the object's responsibility.
-- Keep mutable state as narrowly scoped as practical.
-- Do not expose internal mutable collections directly.
-- Use defensive copies, immutable collections, or encapsulated operations when callers must not mutate internal state.
-- Do not rely on iteration order from a collection implementation that does not guarantee it.
+**TRIGGER:** A method has more than five parameters or repeatedly receives the same group of values.
+
+- Excessive method responsibility SHOULD be investigated first.
+- A request, command, context, or value object SHOULD be introduced only when the parameters form a coherent domain concept.
+- Generic containers such as `FooParams` or `FooArgs` MUST NOT be created merely to reduce visible parameter count.
+
+- State SHOULD be immutable unless mutation is required by the object's responsibility.
+- Mutable state SHOULD be kept as narrowly scoped as practical.
+- Internal mutable collections MUST NOT be exposed directly when external mutation would bypass invariants.
+- Defensive copies, immutable collections, or encapsulated operations SHOULD be used when callers must not mutate internal state.
+- Code MUST NOT rely on iteration order from a collection implementation that does not guarantee it.
 
 ## 2. Object Design And Dependencies
 
-- Prefer constructor injection for required dependencies.
-- Required collaborators should be complete when an object is constructed.
-- Do not use field injection for required dependencies.
-- Do not use setter injection for required dependencies unless a framework or verified project requirement makes it necessary.
-- Do not create an interface solely because a concrete class is injected.
-- Introduce an interface when it represents a real role, architectural boundary, substitutable implementation, or explicit project convention.
-- When only one implementation exists and no real boundary or second implementation is required, prefer the concrete type over a speculative interface.
-- Do not create a `BaseEntity` or similar superclass merely to deduplicate fields.
-- Prefer composition over implementation inheritance.
-- Do not inherit from concrete implementations solely to reuse behavior.
-- Keep domain behavior independent from framework infrastructure when a meaningful domain boundary exists.
-- Do not create a `Service` or `Manager` name when a more precise role name exists.
-- When the repository explicitly establishes an interface plus `Impl` convention for Spring bean contracts, follow that project convention rather than treating it as a universal Java rule.
-- Do not expose persistence, cache, upstream, or fallback implementation details through core domain contracts.
-- Prefer immutable domain and value objects by default. Use mutable objects only when mutation is part of the object's actual responsibility.
+- Constructor injection SHOULD be used for required dependencies.
+- Required collaborators SHOULD be complete when an object is constructed.
+- Field injection MUST NOT be used for required dependencies.
+- Setter injection SHOULD NOT be used for required dependencies.
+
+**EXCEPTION:** Setter or framework-managed injection MAY be used when a verified framework or repository constraint requires it and constructor injection is not viable.
+
+- An interface MUST NOT be introduced solely because a concrete class is injected.
+
+**TRIGGER:** A new interface is introduced.
+
+- It MUST represent a real role, architectural boundary, substitutable implementation, or verified project convention.
+- A single implementation plus hypothetical future extensibility MUST NOT by itself justify the interface.
+
+- A `BaseEntity` or similar superclass MUST NOT be introduced merely to deduplicate fields.
+- Composition SHOULD be preferred over implementation inheritance.
+- Concrete implementations MUST NOT be inherited from solely to reuse behavior.
+- Domain behavior SHOULD remain independent from framework infrastructure when a meaningful domain boundary exists.
+- `Service` or `Manager` SHOULD NOT be used as a role name when a more precise responsibility can be named.
+
+**TRIGGER:** The repository explicitly establishes an interface plus `Impl` convention for Spring bean contracts.
+
+- That convention SHOULD be followed within the verified repository scope.
+
+- Persistence, cache, upstream, or fallback implementation details SHOULD NOT be exposed through core domain contracts.
+- Domain and value objects SHOULD be immutable by default. Mutation MAY be used when state change is part of the object's actual responsibility.
 
 ## 3. JSON, Time, And Persistence
 
 ### JSON
 
-- Use the project's established JSON stack consistently.
-- When no conflicting project convention exists and Jackson is available, prefer Jackson as the standard JSON library.
-- Do not mix Jackson, Gson, `org.json`, or other JSON models throughout business code.
-- If a third-party SDK requires another JSON representation, keep that dependency inside the SDK adapter and convert at the boundary.
-- Bind stable structured JSON to named types instead of repeatedly navigating dynamic nodes through chains such as `json.get("a").get("b").asText()`.
-- Parse JSON once at the boundary and pass typed objects through internal business logic.
-- Do not repeatedly parse and serialize the same payload between internal layers.
-- Dynamic JSON nodes and maps are allowed inside protocol adapters, external dirty-input parsers, generic data-source adapters, and inherently dynamic integrations when appropriate.
-- Once stable business data has been parsed, convert it to a typed representation before exposing it outside the adapter or parser.
-- Use the application's configured serializer or project JSON abstraction rather than creating independent serializer configurations throughout business code.
-- After replacing text-based or dynamic JSON processing with typed parsing, remove obsolete parsing hacks and their related comments.
+- The project's established JSON stack MUST be used consistently.
+
+**TRIGGER:** No conflicting project convention exists and Jackson is already available as the standard JSON stack.
+
+- Jackson SHOULD be used for new JSON behavior.
+
+- Jackson, Gson, `org.json`, or unrelated JSON models SHOULD NOT be mixed throughout business code.
+
+**TRIGGER:** A third-party SDK requires a different JSON representation.
+
+- The foreign JSON dependency SHOULD remain inside the SDK adapter.
+- Data leaving the adapter MUST be converted back to the project's standard representation or typed domain model.
+
+- Stable structured JSON SHOULD be bound to named types instead of repeatedly navigating dynamic nodes through chains such as `json.get("a").get("b").asText()`.
+- JSON SHOULD be parsed once at the boundary and typed objects SHOULD be passed through internal business logic.
+- The same payload SHOULD NOT be repeatedly parsed and serialized between internal layers.
+
+**EXCEPTION:** Dynamic JSON nodes and maps MAY remain internal to protocol adapters, dirty-input parsers, generic data-source adapters, and inherently dynamic integrations.
+
+Once stable business data leaves such a boundary, it MUST be converted to a typed representation.
+
+- Application-configured serializers or the established project JSON abstraction SHOULD be reused rather than creating independent serializer configurations throughout business code.
+- Obsolete parsing hacks and their related comments MUST be removed when typed parsing replaces them.
 
 ### Date And Time
 
-- Use `java.time` for new date and time code.
-- Do not introduce new uses of `java.util.Date` or `Calendar` except at a required compatibility boundary.
-- Use `Instant` for UTC timeline timestamps when appropriate.
-- Use `LocalDate` for date-only business concepts.
-- Use `LocalDateTime` only when a date and time intentionally have no time-zone or offset semantics.
-- Use `ZonedDateTime`, `OffsetDateTime`, or an explicit `ZoneId` when time-zone semantics are part of the value or operation.
-- Cross-time-zone storage and transport must carry explicit time semantics.
-- Do not implicitly depend on the server default time zone for cross-time-zone business behavior.
-- Use project-standard date and time formatting and parsing utilities when they exist.
-- Do not scatter independent `DateTimeFormatter` construction throughout business code when the project provides a standard abstraction.
+- New date and time code MUST use `java.time`.
+- New uses of `java.util.Date` or `Calendar` MUST NOT be introduced.
+
+**EXCEPTION:** Legacy date types MAY be used at a required compatibility boundary, but SHOULD be converted to `java.time` immediately after crossing that boundary.
+
+- `Instant` SHOULD be used for UTC timeline timestamps when appropriate to the contract.
+- `LocalDate` MUST be used for date-only business concepts.
+- `LocalDateTime` MUST be used only when a date and time intentionally have no zone or offset semantics.
+- `ZonedDateTime`, `OffsetDateTime`, or an explicit `ZoneId` SHOULD be used when zone semantics are part of the value or operation.
+- Cross-time-zone storage and transport MUST carry explicit time semantics.
+- Cross-time-zone business behavior MUST NOT depend implicitly on the server default time zone.
+- Project-standard date and time formatting or parsing utilities SHOULD be reused when they exist.
+- Independent `DateTimeFormatter` construction SHOULD NOT be scattered through business code when the project provides a standard abstraction.
 
 ### Persistence
 
-- Keep entities, DAOs, repositories, query models, and persistence-specific implementation details inside the owning feature's persistence boundary.
-- Keep JPA, Hibernate, Spring Data, JDBC, and other persistence-vendor types out of core APIs unless the repository architecture explicitly defines otherwise.
-- Do not expose JPA entities as cross-module domain contracts or public API models by default.
-- Cross-feature code must depend on role interfaces, domain models, commands, or read models rather than another feature's repository or persistence entity.
-- Prefer parameterized ORM, query, or JDBC APIs.
-- Do not build executable SQL by concatenating untrusted values.
-- Avoid hidden lazy-loading dependencies across architectural boundaries.
-- Transaction boundaries must follow actual business consistency requirements.
-- Do not introduce a shared entity superclass merely to remove repeated identity or audit fields.
-- Repository-specific identity strategies, schema naming, auditing conventions, timestamp representations, and repository patterns belong in project-level guidelines.
+- Entities, DAOs, repositories, query models, and persistence-specific implementation details SHOULD remain inside the owning feature's persistence boundary.
+- JPA, Hibernate, Spring Data, JDBC, and other persistence-vendor types SHOULD NOT appear in core APIs unless repository architecture explicitly defines them as part of the contract.
+- JPA entities SHOULD NOT be exposed directly as cross-module domain contracts or public API models.
+- Cross-feature code SHOULD depend on role interfaces, domain models, commands, or read models rather than another feature's repository or persistence entity.
+- Parameterized ORM, query, or JDBC APIs MUST be used for untrusted query values.
+- Executable SQL MUST NOT be built by concatenating untrusted values.
+- Hidden lazy-loading dependencies SHOULD NOT cross architectural boundaries.
+- Transaction boundaries MUST follow verified business consistency requirements.
+- A shared entity superclass MUST NOT be introduced merely to remove repeated identity or audit fields.
+- Repository-specific identity strategies, schema naming, auditing conventions, timestamp representations, and repository patterns MUST be established in project-level guidelines rather than inferred as universal JVM rules.
 
 ## 4. Kotlin And Java Interoperability
 
-Java and Kotlin are both allowed, but Kotlin must use a restrained, Java-oriented style in mixed Java and Kotlin codebases.
+Kotlin in mixed Java and Kotlin codebases MUST use a restrained, Java-oriented style that preserves predictable interoperability and structural consistency.
 
-Prioritize predictable Java interoperability, structural consistency, and long-term maintainability across both languages.
+- Existing common and configuration Kotlin sources SHOULD remain in Kotlin unless a verified redesign requires otherwise.
+- A Kotlin file MUST declare at most one top-level class.
+- Top-level Kotlin functions MUST NOT be introduced.
+- Top-level Kotlin properties MUST NOT be introduced.
+- Methods and properties MUST belong to a role-appropriate `class` or `object`.
+- Factory functions SHOULD reside in a `companion object`.
+- Local and nested classes MAY be used when they are implementation details scoped similarly to their Java equivalents.
+- Kotlin source files MUST be stored under Java source directories such as `src/main/java` and `src/test/java`.
+- Java interoperability MUST remain straightforward.
+- Kotlin-specific API shapes SHOULD NOT be introduced solely for idiomatic style when they materially complicate Java callers.
+- Explicit nullability MUST be preserved across Java and Kotlin boundaries.
 
-- Keep existing common and configuration Kotlin sources in Kotlin unless a redesign explicitly requires otherwise.
-- Declare at most one top-level class per Kotlin file.
-- Do not declare top-level Kotlin functions.
-- Do not declare top-level Kotlin properties.
-- Put methods and properties inside a role-appropriate `class` or `object`.
-- Put factory functions in a `companion object`.
-- Local and nested classes are allowed when they are implementation details scoped similarly to their Java equivalents.
-- Store Kotlin source files under Java source directories such as `src/main/java` and `src/test/java`.
-- Preserve straightforward Java interoperability.
-- Do not introduce Kotlin-specific API shapes solely for idiomatic style when they materially complicate Java callers.
-- Preserve explicit nullability across Java and Kotlin boundaries.
-- When Java APIs use JSpecify, Kotlin code must respect the resulting nullability contracts.
-- KDoc must use standard multi-line documentation blocks. Do not use single-line KDoc.
-- Do not rewrite existing Java to Kotlin or existing Kotlin to Java merely because of language preference.
-- Avoid Kotlin constructs that obscure control flow, ownership, mutation, or Java-visible API behavior when a simpler Java-oriented form is clearer.
-- Do not introduce top-level DSLs, extension-heavy APIs, operator-heavy APIs, or Kotlin-only abstractions without a concrete requirement that justifies their interoperability and maintenance cost.
-- Prefer explicit classes and methods over Kotlin language features that make the same behavior substantially less obvious to Java-oriented maintainers.
+**TRIGGER:** Java APIs use JSpecify.
+
+- Kotlin code MUST respect the resulting nullability contracts.
+
+- KDoc MUST use standard multi-line documentation blocks. Single-line KDoc MUST NOT be used.
+- Existing Java MUST NOT be rewritten to Kotlin, and existing Kotlin MUST NOT be rewritten to Java, merely because of language preference.
+- Kotlin constructs that obscure control flow, ownership, mutation, or Java-visible API behavior SHOULD NOT be used when a simpler Java-oriented form is clearer.
+- Top-level DSLs, extension-heavy APIs, operator-heavy APIs, or Kotlin-only abstractions MUST NOT be introduced without a concrete requirement that justifies their interoperability and maintenance cost.
+- Explicit classes and methods SHOULD be preferred when Kotlin language features would make behavior materially less obvious to Java-oriented maintainers.
 
 ## 5. Exceptions, Logging, Resources, And Tests
 
 ### Exceptions And Logging
 
-- Use specific exception types that communicate failure semantics.
-- Business exceptions must include enough context to identify the failed operation, relevant entity identifiers, and meaningful failure reason.
-- Preserve the original cause when wrapping exceptions.
-- Do not catch `Exception`, `RuntimeException`, or similarly broad types unless the current boundary genuinely owns broad failure translation or recovery.
-- Do not use exceptions for expected business alternatives.
-- A caught exception must be handled, logged appropriately, or rethrown.
-- Do not call `printStackTrace()`.
-- Use the project's logging framework.
-- Do not use `System.out.println` or `System.err.println` for application or committed debugging logs.
-- Use parameterized logging when supported.
-- Include relevant domain and operation context in diagnostic logs.
-- Preserve trace or request identifiers when the project provides them.
-- Do not log secrets or unnecessarily sensitive values.
+- Specific exception types SHOULD communicate failure semantics.
+- Business exceptions MUST include enough context to identify the failed operation, relevant entity identifiers, and a meaningful failure reason.
+- The original cause MUST be preserved when wrapping exceptions.
+- `Exception`, `RuntimeException`, or similarly broad types SHOULD NOT be caught.
+
+**EXCEPTION:** A broad catch MAY be used at a boundary that genuinely owns broad failure translation, containment, or recovery.
+
+- Exceptions MUST NOT be used for expected business alternatives.
+- A caught exception MUST be handled, logged appropriately, or rethrown.
+- `printStackTrace()` MUST NOT be used.
+- The project's logging framework MUST be used for application logging.
+- `System.out.println` and `System.err.println` MUST NOT be used for application or committed debugging logs.
+- Parameterized logging SHOULD be used when supported by the logging framework.
+- Diagnostic logs SHOULD include relevant domain and operation context.
+- Trace or request identifiers SHOULD be preserved when the project provides them.
+- Secrets and unnecessarily sensitive values MUST NOT be logged.
 
 ### Resources And External Calls
 
-- Use try-with-resources for owned `AutoCloseable` resources.
-- Do not manually close resources whose lifecycle is owned by the framework or container.
-- HTTP, RPC, database, and similar external calls must have appropriate timeout behavior.
-- Retry only failures known to be retryable and only when a concrete retry strategy exists.
-- Retryable operations that can cause side effects must be idempotent or protected by an explicit idempotency mechanism.
+- Owned `AutoCloseable` resources MUST use try-with-resources or an equivalent deterministic ownership mechanism.
+- Resources whose lifecycle is owned by the framework or container MUST NOT be manually closed.
+- HTTP, RPC, database, and similar external calls MUST have bounded timeout behavior appropriate to their contract.
+
+**TRIGGER:** Automatic retries are introduced for an external call.
+
+- The failure MUST be established as retryable.
+- Side-effecting operations MUST be idempotent or protected by an explicit duplicate-execution mechanism.
 
 ### Testing And Build
 
-- Follow the repository's established Java and Kotlin test frameworks and conventions.
-- Keep tests independent.
-- Assert behavior rather than unnecessary implementation details.
-- Mock external or infrastructure boundaries when isolation is required.
-- Do not mock the core behavior being tested.
-- Add regression coverage for bug fixes when practical.
-- Add tests for new business behavior.
-- Do not weaken assertions or modify expected behavior merely to accommodate a failing implementation.
-- Use the repository's existing build system, formatter, compiler checks, and static-analysis tools.
-- Treat build configuration as production code and keep changes focused.
-- Do not modify unrelated formatting, plugins, dependencies, or build configuration while solving a focused task.
-- Verify unfamiliar build-tool, framework, or library APIs before introducing or modifying their usage.
+- The repository's established Java and Kotlin test frameworks and conventions MUST be followed.
+- Tests MUST remain independent.
+- Tests SHOULD assert behavior rather than unnecessary implementation details.
+- External or infrastructure boundaries MAY be mocked when isolation is required.
+- Core behavior under test MUST NOT be mocked away.
+- Bug fixes SHOULD add regression coverage when a practical test path exists.
+- New business behavior MUST have corresponding tests.
+- Assertions or expected behavior MUST NOT be weakened merely to accommodate a failing implementation.
+- The repository's existing build system, formatter, compiler checks, and static-analysis tools MUST be respected.
+- Build configuration MUST be treated as production code and changes MUST remain focused.
+- Unrelated formatting, plugins, dependencies, or build configuration MUST NOT be modified during a focused change.
+- Unfamiliar build-tool, framework, or library APIs MUST be verified before introduction or modification.

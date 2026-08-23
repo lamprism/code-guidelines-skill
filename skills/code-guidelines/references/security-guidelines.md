@@ -1,14 +1,14 @@
 # Security Guidelines
 
-These requirements apply when the security reference is triggered by the skill. Apply `engineering-guidelines.md` in addition to this document.
+These requirements apply when the security reference is triggered by the skill. They use the normative model defined by `../SKILL.md` and supplement `engineering-guidelines.md`.
 
-Use applicable OWASP guidance as a security baseline, especially the OWASP Top 10 and OWASP Cheat Sheet Series. Security controls MUST still be derived from the actual trust boundary, asset, attacker capability, and verified system contract rather than copied mechanically from a checklist.
+Applicable OWASP guidance, especially the OWASP Top 10 and OWASP Cheat Sheet Series, SHOULD be used as a security baseline. Security controls MUST still be derived from the actual trust boundary, asset, attacker capability, and verified system contract rather than copied mechanically from a checklist.
 
 ## 1. Security Boundaries
 
 - Security MUST be treated as part of system design rather than post-implementation cleanup.
 - Data crossing an untrusted boundary MUST be treated as untrusted until validated according to the receiving contract.
-- Client-side validation, UI restrictions, network location, obscurity, or previous validation by an untrusted client MUST NOT be treated as server-side security controls.
+- Client-side validation, UI restrictions, network location, obscurity, or validation performed only by an untrusted client MUST NOT be treated as server-side security controls.
 - Security-sensitive failures MUST fail closed unless an explicit applicable **EXCEPTION** defines different behavior.
 - Least privilege MUST be applied to users, services, credentials, filesystem access, network access, database permissions, and infrastructure identities.
 - Established platform, framework, and mature security-library controls SHOULD be used instead of custom authentication protocols, password hashing, cryptographic primitives, session mechanisms, token signing, sanitizers, or equivalent security mechanisms.
@@ -25,7 +25,7 @@ Use applicable OWASP guidance as a security baseline, especially the OWASP Top 1
 - Plaintext or reversibly encoded passwords MUST NOT be stored.
 - Passwords MUST use the project's established password-hashing mechanism and an algorithm designed for password hashing.
 - General-purpose fast hashes MUST NOT be used directly for password storage.
-- Account recovery, verification, and similar security tokens MUST be unpredictable, scoped to their intended operation, time bounded when the protocol requires expiry, and invalidated according to the verified lifecycle.
+- Account recovery, verification, and similar security tokens MUST be unpredictable, scoped to their intended operation, time bounded when expiry is part of the protocol, and invalidated according to the verified lifecycle.
 
 ### Authorization
 
@@ -126,7 +126,7 @@ Use applicable OWASP guidance as a security baseline, especially the OWASP Top 1
 
 **TRIGGER:** The application exposes HTTP behavior.
 
-- Sensitive or authenticated traffic MUST use HTTPS outside an explicit local-development exception.
+- Sensitive or authenticated traffic MUST use HTTPS outside an explicit local-development **EXCEPTION**.
 - TLS certificate and hostname verification MUST NOT be disabled in production behavior.
 - State-changing operations MUST NOT rely on `GET`.
 - Detailed stack traces, SQL statements, internal paths, credentials, secrets, and unnecessary framework diagnostics MUST NOT be exposed in HTTP error responses.
@@ -151,7 +151,7 @@ Use applicable OWASP guidance as a security baseline, especially the OWASP Top 1
 - Allowed schemes MUST be constrained.
 - Internal, loopback, link-local, metadata, administrative, and other prohibited destinations MUST be rejected unless explicitly required by the verified contract.
 - Validation MUST account for parsing, resolution, and the effective destination.
-- DNS behavior and rebinding MUST be considered when hostname resolution can change whether a destination is permitted.
+- DNS behavior and rebinding MUST be evaluated when hostname resolution can change whether a destination is permitted.
 - Redirects MUST NOT allow a permitted destination to escape into a prohibited destination.
 - Network timeouts, redirect limits, and response-size limits MUST be bounded when controlled by an untrusted destination.
 - String prefix, suffix, substring, or blacklist checks MUST NOT be the sole SSRF control.
@@ -233,7 +233,7 @@ Use applicable OWASP guidance as a security baseline, especially the OWASP Top 1
 - Production secrets, passwords, API keys, private keys, access tokens, and equivalent credentials MUST NOT be hard-coded in source code.
 - Secrets SHOULD be obtained from the project's approved secret-management or protected configuration mechanism.
 - Secrets MUST NOT be placed in URLs, source-control history, example configuration, logs, metrics, analytics events, snapshots, or exception messages.
-- Reusable credentials MUST NOT be logged even under a development or diagnostic exception.
+- Reusable credentials MUST NOT be logged even under a development or diagnostic **EXCEPTION**.
 - Test credentials MUST NOT provide access to production systems or production data.
 
 ### Sensitive Data
@@ -274,7 +274,7 @@ Use applicable OWASP guidance as a security baseline, especially the OWASP Top 1
 - Security and integrity decisions MUST remain correct under the actual concurrency model.
 - Application-level pre-checks MUST NOT be the sole protection for invariants that require atomic enforcement.
 - Transactions, constraints, atomic operations, locks, compare-and-set, or equivalent mechanisms MUST be used when the invariant requires atomicity.
-- Single-use security tokens and idempotency or replay controls MUST enforce their uniqueness atomically when concurrent use is possible.
+- Single-use security tokens and idempotency or replay controls MUST enforce uniqueness atomically when concurrent use is possible.
 
 ## 8. Supply Chain And Deployment
 
@@ -284,7 +284,7 @@ Use applicable OWASP guidance as a security baseline, especially the OWASP Top 1
 
 - The existing standard library and dependency set MUST be checked before adding a new dependency.
 - Dependencies SHOULD come from authoritative, actively maintained, and trusted sources.
-- Known vulnerabilities relevant to the introduced version MUST be considered when dependency security is part of the change.
+- Known vulnerabilities relevant to the introduced version MUST be evaluated when dependency security is part of the change.
 - Existing lockfile, checksum, signature, artifact-repository, or dependency-verification mechanisms MUST NOT be bypassed merely to make resolution succeed.
 - Remote installation scripts MUST NOT be executed without understanding and trusting their source and behavior.
 - Unrelated dependency upgrades MUST NOT be included in a focused change unless required for correctness or security.
@@ -318,14 +318,14 @@ Security-sensitive behavior MUST be verified at the boundary where the security 
 - Security-token tests MUST cover applicable expiration, scope, replay, single-use, signature, or claim behavior.
 - Failure-path tests MUST verify that security-control failures do not silently permit the protected operation.
 - Security tests MUST NOT be weakened merely to accommodate insecure production behavior.
-- A verified vulnerability fix SHOULD include regression coverage for the vulnerable behavior when practical.
+- A verified vulnerability fix SHOULD include regression coverage for the vulnerable behavior when a practical test path exists.
 - Static analysis, dependency scanning, secret scanning, and similar tools SHOULD be used when the repository already provides them or the task requires them.
 
 Successful tests or tool output MUST NOT be treated as proof that the application is comprehensively secure.
 
 ## 10. Security Review Signals
 
-The following patterns require investigation when they appear in relevant code. They are signals, not automatic proof of a vulnerability.
+The following patterns are investigation signals, not automatic proof of a vulnerability.
 
 | Signal | Concern |
 |---|---|
@@ -358,14 +358,21 @@ The following patterns require investigation when they appear in relevant code. 
 | Unfamiliar executable dependency or remote script | Supply-chain risk may be introduced |
 | Security test weakened with production change | Verification may have been adapted to insecure behavior |
 
-For a review signal: establish reachability by an untrusted actor, identify the affected asset or property, inspect the actual framework and deployment behavior, verify existing mitigations, and verify exploitability or failure behavior when practical and safe. A potential risk MUST NOT be reported as a confirmed vulnerability without supporting evidence.
+**TRIGGER:** A security review signal is found in relevant code.
+
+- Reachability by an untrusted actor MUST be established or explicitly left unverified.
+- The affected asset or security property MUST be identified.
+- Actual framework, protocol, and deployment behavior SHOULD be inspected.
+- Existing mitigations MUST be verified before they are relied upon.
+- Exploitability or failure behavior SHOULD be verified when practical and safe.
+- A potential risk MUST NOT be reported as a confirmed vulnerability without supporting evidence.
 
 ## 11. Exception Boundaries
 
 Security controls MUST be proportional to the verified threat model, but convenience MUST NOT create implicit exceptions.
 
-Do not mechanically add authentication to intentionally public resources, encryption to data with no confidentiality requirement, application rate limiting when an exact verified infrastructure control already owns the bound, sanitization where contextual encoding is the correct control, or duplicate wrappers around already verified safe framework APIs.
+Authentication MUST NOT be added to intentionally public resources solely because the security reference is loaded. Encryption MUST NOT be added to data with no verified confidentiality requirement. Application-level rate limiting SHOULD NOT duplicate an exact verified infrastructure control. Sanitization SHOULD NOT replace contextual output encoding. Security wrappers SHOULD NOT duplicate already verified safe framework behavior without concrete benefit.
 
 A development, test, debug, or local environment MAY relax a rule only through an explicit applicable **EXCEPTION**. The relaxation MUST be narrowly scoped, MUST NOT expose production secrets or sensitive production data, and MUST NOT become active in production unintentionally.
 
-Security review remains evidence driven. Compliance with this document MUST NOT be used as the sole basis for claiming that code is secure.
+Compliance with this document MUST NOT be used as the sole basis for claiming that code is secure.

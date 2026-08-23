@@ -1,311 +1,344 @@
 # Engineering Guidelines
 
-These requirements apply to source code, tests, build logic, and configuration unless a more specific project or language rule explicitly overrides them.
+These requirements apply to source code, tests, build logic, and configuration. They use the normative model defined by `../SKILL.md`.
 
 ## 1. Design And Change Principles
 
 ### Simplicity First
 
-Follow SOLID, DRY, Clean Code, and related engineering principles, but prioritize current verified requirements over hypothetical future needs.
+Current verified requirements MUST take precedence over hypothetical future needs.
 
-- **Do not abstract prematurely**: when only one implementation exists and no concrete second implementation is required, do not introduce an interface, strategy, factory, extension point, or configuration mechanism solely for future flexibility.
-- **Abstractions must provide concrete value**: introduce an abstraction only when it reduces real coupling, removes duplication of the same knowledge, separates an actual responsibility, or represents a real variation point.
-- **Do not refactor for appearances**: the presence of a `switch`, `Map`, literal, concrete library call, or other implementation construct is not itself a reason to refactor.
-- **Prefer established project patterns**: when the repository already has a suitable approach, use it instead of introducing a competing mechanism based on personal preference.
-- **Match design scale to actual requirements**: the number of abstractions, interfaces, layers, and configuration options must reflect the complexity of the current problem.
-- **Prefer readability over cleverness**: simple does not mean fewer lines. Do not compress code at the cost of clarity.
-- **Do not optimize hypothetical problems**: complex caching, concurrency, batching, indexing, or algorithmic optimization requires evidence from requirements, expected scale, profiling, benchmarks, or runtime observations.
+- New abstractions, interfaces, strategies, factories, extension points, or configuration mechanisms MUST NOT be introduced solely for hypothetical future flexibility.
+- An abstraction SHOULD be introduced only when it provides a concrete present-day benefit such as reducing real coupling, removing duplicated knowledge, separating an actual responsibility, or representing a real variation point.
+- The presence of a `switch`, `Map`, literal, concrete library call, or similar implementation construct MUST NOT by itself justify refactoring.
+- Established repository patterns SHOULD be reused when they correctly fit the requirement.
+- Design complexity SHOULD match the current problem. Additional layers, interfaces, or configuration surfaces MUST have concrete justification.
+- Readability SHOULD take precedence over compact or clever code.
 
-Before introducing an abstraction, configuration option, compatibility path, fallback, or optimization, ask whether the corresponding variation, requirement, failure mode, or performance problem exists today. If not, do not introduce it.
+**TRIGGER:** A change introduces complexity primarily for performance reasons.
+
+- The optimization MUST be justified by an explicit requirement, expected scale, profiling, benchmark results, production metrics, or equivalent evidence.
+- Complex caching, concurrency, batching, indexing, or algorithmic optimization MUST NOT be introduced for a purely hypothetical performance problem.
 
 ### Responsibility And Dependency Design
 
-- Design before coding. Identify the relevant business concepts, responsibility ownership, and dependency direction before adding production logic.
-- Give each class one clear responsibility and one primary reason to change.
-- A responsibility description containing multiple unrelated concerns is a signal to examine whether the class should be split. It is not a mechanical requirement to create more classes.
-- Keep methods focused on one responsibility and one abstraction level.
-- Do not unnecessarily mix persistence, business rules, protocol conversion, DTO construction, presentation logic, logging policy, and infrastructure concerns.
-- Prefer guard clauses and focused helper methods when they materially reduce nesting or mixed responsibilities.
-- Keep business rules inside objects with clear domain responsibilities instead of scattering equivalent conditions across callers.
-- Follow Tell, Don't Ask: request behavior from the object that owns the rule instead of extracting its state and reimplementing the rule elsewhere.
-- Follow the Law of Demeter. Avoid traversing collaborator object graphs such as `a.getB().getC().getD()`.
-- Depend on the narrowest abstraction required to perform the responsibility.
-- High-level modules must not depend unnecessarily on concrete infrastructure details.
-- Prefer composition over inheritance.
-- Do not inherit from a concrete implementation merely to reuse behavior.
-- Use polymorphism when a real variation point exists and it reduces meaningful conditional complexity. Do not create a strategy hierarchy for a single hypothetical alternative.
-- Make fallback and degraded behavior explicit in types, method names, result states, fields, or contracts. Do not silently change semantics.
-- Do not silently convert values between currencies at a 1:1 rate or relabel native amounts as amounts in another currency.
+- Relevant business concepts, responsibility ownership, and dependency direction SHOULD be established before production behavior is added or materially changed.
+- A class SHOULD have one coherent responsibility and one primary reason to change.
+- A method SHOULD perform one coherent responsibility at one abstraction level.
+- Persistence, business rules, protocol conversion, DTO construction, presentation logic, logging policy, and infrastructure concerns SHOULD NOT be mixed in one method without a concrete reason.
+- Guard clauses SHOULD be used when they materially reduce unnecessary nesting.
+- Business rules SHOULD reside in objects or components that own the relevant domain responsibility instead of being duplicated across callers.
+- Callers SHOULD request behavior from the object that owns a rule rather than extracting state and reimplementing the rule externally.
+- Collaborator object graphs SHOULD NOT be traversed unnecessarily through chains such as `a.getB().getC().getD()`.
+- Components SHOULD depend on the narrowest capability required for their responsibility.
+- High-level policy SHOULD NOT depend unnecessarily on concrete infrastructure details.
+- Composition SHOULD be preferred over implementation inheritance.
+- A concrete implementation MUST NOT be inherited from solely to reuse behavior.
+
+**TRIGGER:** Type-based branching for the same business variation is duplicated or materially growing across multiple components.
+
+- Polymorphism or a strategy boundary SHOULD be considered when it centralizes a real variation point and reduces duplicated conditional logic.
+- A strategy hierarchy MUST NOT be introduced when there is no real variation point.
+
+Fallback and degraded behavior MUST be explicit in a type, method name, result state, field, or contract. A fallback MUST NOT silently change the semantic meaning of a result.
+
+Cross-currency values MUST NOT be silently converted at a 1:1 rate or relabeled as another currency.
 
 ### SOLID, DRY, And Extensibility
 
-Apply SOLID as a design tool, not as a reason to maximize abstraction.
+SOLID principles SHOULD guide responsibility and dependency decisions but MUST NOT be used as justification for speculative abstraction.
 
-- **Single Responsibility**: one component should own one coherent responsibility and one primary reason to change.
-- **Open/Closed**: when a real variation point already exists and branching would otherwise spread across the system, prefer adding a new implementation or strategy over repeatedly modifying duplicated type branches.
-- **Liskov Substitution**: code using an abstraction must not depend on repeated subtype probing, selective `isXxx()` checks, or unsafe downcasts to make the abstraction usable.
-- **Interface Segregation**: consumers should depend only on the operations they actually need.
-- **Dependency Inversion**: high-level policy should depend on appropriate abstractions rather than directly constructing infrastructure implementations when a real architectural boundary exists.
-- Do not introduce an abstraction solely to appear compliant with SOLID.
-- Eliminate duplication when duplicated code represents the same business knowledge, policy, or reason for change.
-- Do not merge code that is merely syntactically similar but semantically independent.
-- A small amount of local duplication is preferable to an incorrect abstraction.
-- Extensibility must correspond to a real business or technical variation point.
-- Do not create a broader public capability solely because a subdomain currently needs one operation. Keep behavior within the owning domain or adapter unless a meaningful broader abstraction actually exists.
+- **Single Responsibility:** one component SHOULD own one coherent responsibility and one primary reason to change.
+- **Open/Closed:** when a real variation point already exists and branching would otherwise spread across the system, adding an implementation or strategy SHOULD be preferred over duplicating or expanding equivalent branches in multiple locations.
+- **Liskov Substitution:** an abstraction SHOULD NOT require repeated subtype probing, selective `isXxx()` checks, or unsafe downcasts for normal use.
+- **Interface Segregation:** consumers SHOULD depend only on operations they actually require.
+- **Dependency Inversion:** high-level policy SHOULD depend on an appropriate abstraction when a verified architectural boundary or substitutable role exists.
+
+An abstraction MUST NOT be introduced solely to appear compliant with SOLID.
+
+Duplicated code SHOULD be consolidated when it represents the same business knowledge, policy, or reason for change. Code that is only syntactically similar but semantically independent SHOULD NOT be merged merely to remove textual duplication. A small amount of local duplication MAY be preferable to an incorrect abstraction.
+
+Extensibility MUST correspond to a real business or technical variation point. A broader public capability MUST NOT be introduced solely because one subdomain currently needs a local operation.
 
 ### Contracts, Compatibility, And Defensive Logic
 
-- **Establish the contract before fixing a mismatch**: when caller and callee behavior disagree, use definitions, tests, documentation, protocol contracts, and actual usage to determine which side violates the intended contract.
-- Do not broaden a callee's contract merely to accommodate an incorrect caller.
-- Do not tighten a caller's behavior merely to accommodate an incorrect callee.
-- **Do not add unverified compatibility behavior**: fallback keys, dual reads, dual writes, aliases, legacy field support, old endpoint handling, and migration branches require evidence that an actual consumer or persisted representation depends on them.
-- **Defensive logic must address a real failure mode**: add `try-catch`, null checks, retries, fallback values, or validation only when the failure can actually occur under the verified contract and a concrete handling strategy exists.
-- Do not add defensive code merely to make the implementation appear more robust.
-- Do not silently replace invalid or failed state with apparently valid business data.
-- When compatibility or fallback behavior is required, make its semantics explicit.
-- Do not preserve obsolete implementations by creating parallel `V2`, `newXxx`, or `Impl2` variants when the task requires replacing the existing behavior.
+**TRIGGER:** Caller and callee behavior disagree.
+
+- The intended contract MUST be established from definitions, tests, documentation, protocol contracts, and actual usage before either side is changed.
+- A callee contract MUST NOT be broadened merely to accommodate an invalid caller.
+- Caller behavior MUST NOT be narrowed merely to accommodate an incorrect callee.
+
+**TRIGGER:** A change introduces compatibility behavior such as fallback keys, dual reads, dual writes, aliases, legacy fields, old endpoints, or migration branches.
+
+- A verified consumer, persisted representation, protocol requirement, or explicit compatibility requirement MUST justify the compatibility behavior.
+- Speculative compatibility MUST NOT be added.
+
+**TRIGGER:** A change introduces null guards, exception handling, retries, fallback values, or other defensive behavior.
+
+- The failure mode MUST be possible under the verified contract.
+- The handling behavior MUST have concrete semantics.
+- Defensive logic MUST NOT be added merely to make code appear more robust.
+- Invalid or failed state MUST NOT be silently converted into apparently valid business data.
+
+Obsolete behavior SHOULD be replaced directly when replacement is the requirement. Parallel variants such as `XxxV2`, `newXxx()`, or `Impl2` MUST NOT be introduced merely to avoid replacing the old implementation.
 
 ### Public API And Dependencies
 
-- Use the narrowest visibility that satisfies actual consumers.
-- Do not make classes, methods, fields, modules, or extension points public for hypothetical future use.
-- New public contracts must have a real consumer, explicit requirement, or verified architectural purpose.
-- Treat public APIs and cross-module contracts as compatibility surfaces. Change them deliberately.
-- Before adding a third-party dependency, confirm that the standard library and existing project dependencies do not already provide an adequate solution.
-- Add a dependency only when its concrete value justifies its maintenance, security, licensing, size, build, and runtime costs.
-- Verify unfamiliar dependency APIs before use. Do not infer method signatures or semantics from memory.
+- Visibility SHOULD be the narrowest that satisfies actual consumers.
+- Classes, methods, fields, modules, extension points, or configuration surfaces MUST NOT be made public for hypothetical future use.
+
+**TRIGGER:** A change introduces or expands a public or cross-module contract.
+
+- An actual consumer, explicit contract requirement, or verified architectural purpose MUST justify the exposed surface.
+- Compatibility impact MUST be evaluated deliberately.
+
+**TRIGGER:** A change introduces a third-party dependency.
+
+- The standard library and existing project dependencies MUST first be checked for an adequate solution.
+- The dependency SHOULD provide enough concrete value to justify its maintenance, security, licensing, size, build, and runtime costs.
+- Unfamiliar dependency APIs MUST be verified from authoritative documentation, source, or established project usage before use.
 
 ## 2. Code Expression And Readability
 
 ### Naming
 
-- Use semantic, role-revealing names based on business meaning rather than implementation detail.
-- Avoid vague names such as `data`, `handler`, `helper`, `manager`, `service`, `flag`, `status`, or `process` when a more precise role can be named.
-- Common and unambiguous domain or industry abbreviations such as `id` and `url` are acceptable.
-- Boolean variables and methods must express true or false semantics, such as `isValid`, `hasPermission`, or `canRetry`.
-- Do not use names such as `XxxV2`, `newXxx`, or `calculateImpl2` to avoid replacing an obsolete implementation.
+- Names MUST express business or role semantics rather than incidental implementation detail.
+- Vague names such as `data`, `handler`, `helper`, `manager`, `service`, `flag`, `status`, or `process` SHOULD NOT be used when a more precise role can be named.
+- Common and unambiguous domain or industry abbreviations such as `id` and `url` MAY be used.
+- Boolean names MUST express true or false semantics such as `isValid`, `hasPermission`, or `canRetry`.
+- Names such as `XxxV2`, `newXxx`, or `calculateImpl2` MUST NOT be used merely to preserve an obsolete implementation beside its replacement.
 
 ### Comments And Documentation
 
-- Implementation comments should explain why a decision, constraint, workaround, or non-obvious business rule exists. Do not restate what the code already expresses.
-- If deleting a comment would lose no information, the comment should not exist.
-- When complex business logic remains difficult to understand after appropriate naming and decomposition, a limited explanatory comment may describe what the critical logic does.
-- Do not use comments as a substitute for clearer naming or structure.
-- Class, field, method, function, and public API documentation may describe purpose, behavior, parameters, return values, invariants, and contracts.
-- Documentation comments must use the language's standard multi-line documentation form rather than ordinary single-line comments.
-- Do not use unexplained ticket numbers, requirement labels, review versions, or internal reference codes as substitutes for explaining the underlying reason.
-- When code changes, remove obsolete comments instead of leaving historical explanations behind.
+- Implementation comments SHOULD explain why a decision, constraint, workaround, or non-obvious business rule exists.
+- Comments MUST NOT merely restate what the code already expresses.
+- A comment that can be removed without losing information SHOULD be removed.
+- When complex business logic remains difficult to understand after appropriate naming and decomposition, a limited explanatory comment MAY describe the critical behavior.
+- Comments MUST NOT substitute for clearer naming or structure.
+- Documentation for classes, fields, methods, functions, or public APIs MAY describe purpose, behavior, parameters, return values, invariants, and contracts.
+- Documentation comments MUST use the language's standard documentation form.
+- Unexplained ticket IDs, requirement labels, review versions, or internal reference codes MUST NOT substitute for explaining the underlying reason.
+- Obsolete comments MUST be removed when the implementation changes.
 
 ### Language And Characters
 
-- Use American English for identifiers, comments, logs, internal error messages, and technical text in source files.
-- Use ASCII characters in technical source content unless non-ASCII content is required by user-facing text, localization, protocol data, or domain semantics.
-- Do not use emoji, en dashes, or em dashes in technical source content.
-- Minimize ordinary dashes in prose and comments. Prefer colons, parentheses, or rewording when clearer.
+- Technical source content SHOULD use American English for identifiers, comments, logs, internal error messages, and technical text.
+- ASCII SHOULD be used for technical source content unless non-ASCII content is required by user-facing text, localization, protocol data, or domain semantics.
+- Emoji, en dashes, and em dashes SHOULD NOT be used in technical source content.
+- Ordinary dashes SHOULD be minimized when a colon, parentheses, or rewording is clearer.
 
 ### Control Flow And Parsing
 
-- `if`, `for`, `while`, and equivalent control-flow bodies must use braces, including single-statement bodies.
-- Put braced bodies on separate lines.
-- Prefer guard clauses when they reduce unnecessary nesting.
-- Deep nesting is a signal to examine responsibility and control flow, not a fixed numerical violation.
-- Do not mechanically split methods solely to satisfy a line-count or nesting threshold.
-- Avoid regular expressions by default.
-- Do not use regular expressions to parse structured formats when a structured parser or typed API exists.
-- Prefer explicit parsing, typed APIs, string scanning, or a small readable state machine.
-- Use a regular expression only when it is clearly simpler for a bounded matching problem.
-- Non-trivial regular expressions must have clearly understood matching boundaries and must avoid unnecessary performance risks.
-- Dirty or inherently unstructured external input, including unreliable machine-generated text, may use regular expressions as a controlled parsing fallback.
+- `if`, `for`, `while`, and equivalent control-flow bodies MUST use braces, including single-statement bodies.
+- Braced bodies MUST use multi-line form.
+- Guard clauses SHOULD be used when they materially improve readability.
+- Deep nesting is an investigation signal, not a fixed numerical violation.
+- Methods MUST NOT be split solely to satisfy an arbitrary line-count or nesting threshold.
+
+Regular expressions SHOULD NOT be used when explicit parsing, a structured parser, typed API, string scanning, or a small state machine is clearer.
+
+**TRIGGER:** A regular expression is introduced.
+
+- The matching boundary and purpose MUST be understood.
+- The expression SHOULD be used only when it is materially simpler than the available alternatives.
+- Its performance characteristics MUST be safe for the expected input.
+
+**EXCEPTION:** Regular expressions MAY be used as a bounded parser or fallback for inherently textual or dirty external input, including unreliable machine-generated text, when a structured representation is unavailable or inappropriate.
 
 ### Method Parameters
 
-When a method has more than roughly four or five parameters, examine whether its responsibility or API shape should be improved.
+**TRIGGER:** A method has more than five parameters or repeatedly receives the same group of values.
 
-- First determine whether the method owns too many responsibilities.
-- Introduce a parameter object only when the values form a coherent business concept such as `TransferRequest`, `PricingContext`, or `RecallQuery`.
-- Do not mechanically wrap unrelated values in containers such as `FooParams` or `FooArgs`.
-- If the values have no meaningful relationship beyond being passed to the same method, prefer examining whether the method should be split.
-- External protocol request and response objects are exempt because their shape is defined by the external contract.
+- The method's responsibility SHOULD first be examined for excessive scope.
+- A parameter object SHOULD be introduced only when the values form a coherent business concept such as `TransferRequest`, `PricingContext`, or `RecallQuery`.
+- Unrelated values MUST NOT be mechanically wrapped in generic containers such as `FooParams` or `FooArgs` merely to reduce the visible parameter count.
+- When the values have no meaningful relationship beyond being passed together, splitting the responsibility SHOULD be considered before introducing a container.
+
+**EXCEPTION:** External protocol request and response objects MAY contain any field count required by the external contract.
 
 ## 3. Types, Data, And Boundaries
 
 ### Closed Values And Domain Types
 
-- Stable closed value sets such as error codes, statuses, modes, categories, strategies, and types must use an enum or an equivalent closed type representation.
-- Do not compare internal business state through raw string or numeric literals such as `status.equals("ACTIVE")`.
-- Convert external string or numeric representations to the closed type once at the system boundary.
-- Internal business logic must operate on the typed value rather than repeatedly parsing the raw representation.
-- Unknown external values must have an explicit handling strategy such as rejection, logging plus fallback, or a documented unknown state. Do not silently ignore or discard them.
-- Use value objects when they protect invariants, group semantically inseparable values, or remove ambiguity from important primitives.
-- Do not mechanically wrap every primitive.
-- Do not represent business state with `null`, zero, empty strings, arbitrary constants, or other valid-looking sentinel values.
+- Stable closed value sets such as error codes, statuses, modes, categories, strategies, and types MUST use an enum or equivalent closed type representation.
+- Internal business state MUST NOT be compared through raw string or numeric literals when the value belongs to a stable closed set.
+- External string or numeric values MUST be converted to the closed type once at the system boundary.
+- Internal business logic MUST operate on the typed value rather than repeatedly parsing the raw representation.
+- Unknown external values MUST have an explicit handling strategy such as rejection, a documented unknown state, or logging plus an intentional fallback. They MUST NOT be silently ignored or discarded.
+- Value objects SHOULD be used when they protect invariants, group semantically inseparable values, or remove ambiguity from important primitives.
+- Primitives MUST NOT be wrapped mechanically when no semantic or correctness benefit exists.
+- `null`, zero, empty strings, arbitrary constants, or other valid-looking values MUST NOT be used as hidden business-state sentinels.
 
 ### Typed Domain Boundaries
 
-- Business data passed across modules or architectural boundaries must use named, typed domain objects when the data has a stable business shape.
-- Do not pass raw JSON strings, `Map<String, Object>`, or generic `Object` values through business modules to carry known business semantics.
-- Parse external representations once at the boundary, operate on typed objects internally, and serialize once at the output boundary.
-- Do not repeatedly parse and serialize the same business data through intermediate layers.
-- Dynamic maps and JSON nodes are allowed inside protocol adapters, external dirty-input parsers, generic data infrastructure, and inherently dynamic integrations.
-- Once stable business data has been parsed successfully, convert it to a typed representation before exposing it outside the boundary implementation.
-- Open row structures from generic data sources such as arbitrary SQL query results may remain dynamic when the structure is intentionally open.
-- Weakly typed parameter containers may remain internal to LLM, plan, or similar inherently dynamic parsers.
+- Stable business data crossing module or architectural boundaries MUST use named typed objects.
+- Raw JSON strings, `Map<String, Object>`, or generic `Object` values MUST NOT carry known business semantics across business-module boundaries.
+- External representations SHOULD be parsed once at the boundary, processed as typed objects internally, and serialized once at the output boundary.
+- The same business payload SHOULD NOT be repeatedly parsed and serialized through intermediate layers.
+
+**EXCEPTION:** Dynamic maps, JSON nodes, weakly typed containers, or similar structures MAY remain internal to protocol adapters, external dirty-input parsers, generic data infrastructure, LLM or plan parsers, and inherently dynamic integrations.
+
+Once stable business data leaves such an implementation boundary, it MUST be converted to the appropriate typed representation.
+
+Open row structures from intentionally generic data sources, such as arbitrary SQL query results, MAY remain dynamic.
 
 ### JSON Processing
 
-- A project should use one standard JSON stack rather than mixing unrelated JSON libraries throughout business code.
-- When Java-specific behavior is involved, follow the JSON requirements in `java-guidelines.md`.
-- Prefer binding stable JSON structures to named types rather than repeatedly navigating dynamic fields.
-- Dynamic JSON representations belong at boundaries and parser internals when they are genuinely required.
-- After a typed representation replaces text-based or dynamic JSON handling, remove obsolete string-processing hacks and related historical comments.
+- A project SHOULD use one standard JSON stack rather than mixing unrelated JSON libraries throughout business code.
+- Stable JSON structures SHOULD be bound to named types instead of repeatedly navigated through dynamic fields.
+- Dynamic JSON representations SHOULD remain inside boundaries and parser internals when genuinely required.
+- Obsolete text-processing or dynamic JSON hacks and their related comments MUST be removed when typed parsing replaces them.
 
 ### Absence And State
 
-- Methods that may legitimately return no value should expose that possibility through the language or project's established nullability or optional-value mechanism.
-- Collection-returning APIs must return an empty collection rather than `null`.
-- Do not add null handling that contradicts a verified non-null contract.
-- Do not use valid-looking domain values as substitutes for absence, failure, unsupported state, or fallback behavior.
-- If optional-value wrappers are used, follow the language-specific rules for where they are appropriate.
+- A method that may legitimately return no value MUST expose that possibility through the established language or project nullability or optional-value mechanism.
+- Collection-returning APIs MUST return an empty collection rather than `null`.
+- Null handling MUST NOT be added when it contradicts a verified non-null contract.
+- Valid-looking domain values MUST NOT substitute for absence, failure, unsupported state, or fallback behavior.
 
 ### Persistence And Data Boundaries
 
-- Persistence entities, DAOs, repositories, query models, and persistence-vendor types belong to their owning persistence boundary.
-- Cross-module code should depend on domain models, read models, commands, or role interfaces rather than another module's persistence internals.
-- Do not expose ORM, database, cache, or storage implementation details through core APIs unless they are explicitly part of the contract.
-- Schema design must follow actual ownership, lifecycle, integrity, query, indexing, update, concurrency, and retention requirements.
-- Do not normalize, denormalize, flatten, split, merge, or move data into document payloads mechanically.
-- Every structural persistence change must have a concrete access-pattern, integrity, lifecycle, or performance justification.
+- Persistence entities, DAOs, repositories, query models, and persistence-vendor types SHOULD remain inside their owning persistence boundary.
+- Cross-module code SHOULD depend on domain models, read models, commands, or role interfaces rather than another module's persistence internals.
+- ORM, database, cache, or storage implementation details SHOULD NOT leak through core APIs unless they are explicitly part of the contract.
 
-## 4. Exceptions, Logging, And Security
+**TRIGGER:** A structural persistence change normalizes, denormalizes, flattens, splits, merges, or relocates stored data.
+
+- The change MUST have a concrete justification based on ownership, lifecycle, integrity, query patterns, indexing, update behavior, concurrency, retention, or measured performance.
+- Persistence structure MUST NOT be changed mechanically merely to match a preferred pattern.
+
+## 4. Exceptions, Logging, Security, And Resources
 
 ### Exceptions
 
-- Business exceptions must carry enough context to identify the failed operation, relevant entity identifiers, and meaningful failure reason.
-- Use exceptions for exceptional failures, not normal business branching.
-- Catch an exception only when the current layer has a concrete responsibility to recover, translate, enrich, compensate, or record it.
-- A caught exception must be handled, recorded appropriately, or rethrown. Never silently swallow an exception.
-- Preserve the original cause when wrapping an exception.
-- Do not add broad catch blocks merely to make code appear defensive.
+- Business exceptions MUST carry enough context to identify the failed operation, relevant entity identifiers, and a meaningful failure reason.
+- Exceptions MUST NOT be used for normal business branching.
+
+**TRIGGER:** An exception is caught.
+
+- The current layer MUST have a concrete responsibility to recover, translate, enrich, compensate, or record the failure.
+- The failure MUST be handled, appropriately recorded, or rethrown.
+- The original cause MUST be preserved when wrapping.
+- Broad catch blocks MUST NOT be added merely as defensive ceremony.
 
 ### Logging
 
-- Use the project's logging framework. Do not use ad hoc printing as application logging.
-- `ERROR` is for failures that require intervention or represent an unsuccessful operation that cannot recover at the current level.
-- `WARN` is for abnormal conditions that can be recovered or tolerated automatically.
-- `INFO` records meaningful business or lifecycle events.
-- `DEBUG` is for development and diagnostic detail.
-- Important `ERROR` and `WARN` logs must contain enough context to investigate the problem, such as relevant business identifiers, key input information, failure reasons, and exception details.
-- Core business paths such as payment, order creation, or important state transitions should record enough meaningful before-and-after context to reconstruct failures when the project logging model supports it.
-- Avoid noisy logging on high-frequency non-critical paths.
-- Preserve trace IDs, request IDs, correlation IDs, or equivalent identifiers when the architecture provides them.
-- Do not log credentials, secrets, tokens, passwords, or unnecessarily sensitive data.
-- Do not use console printing or direct stack-trace printing as a substitute for structured logging.
+- Application logging MUST use the project's logging framework rather than ad hoc printing.
+- `ERROR` SHOULD represent failures that require intervention or cannot recover at the current level.
+- `WARN` SHOULD represent abnormal conditions that can be recovered or tolerated automatically.
+- `INFO` SHOULD record meaningful business or lifecycle events.
+- `DEBUG` SHOULD be limited to development and diagnostic detail.
+- Important `ERROR` and `WARN` logs MUST contain enough context to investigate the failure, including relevant identifiers, key inputs when safe, failure reason, and exception details when applicable.
+- Core business paths SHOULD record enough meaningful state transition context to support investigation when the project logging model supports it.
+- High-frequency non-critical paths SHOULD NOT emit noisy logs that obscure useful information.
+- Trace IDs, request IDs, correlation IDs, or equivalent identifiers SHOULD be preserved when the architecture provides them.
+- Credentials, secrets, tokens, passwords, and unnecessarily sensitive data MUST NOT be logged.
+- Console printing or direct stack-trace printing MUST NOT substitute for structured logging.
 
 ### Security And External Input
 
-- Treat external input as untrusted unless a verified trusted-boundary contract proves otherwise.
-- Validate HTTP parameters, uploaded content, third-party API responses, messages, and other external data according to the actual contract before relying on them.
-- Use parameterized queries, ORM APIs, or equivalent safe mechanisms. Do not construct executable SQL from untrusted input through string concatenation.
-- Prefer environment variables, configuration systems, or secret-management infrastructure for secrets, tokens, passwords, and credentials.
-- If a framework limitation or temporary local debugging requirement genuinely requires a hard-coded sensitive value, document the reason and scope and ensure it does not remain in a production branch or release.
-- User-facing errors must not expose stack traces, SQL statements, server paths, credentials, or unnecessary implementation details.
+- External input MUST be treated as untrusted unless a verified trusted-boundary contract establishes otherwise.
+- HTTP parameters, uploads, third-party responses, messages, and other external data MUST be validated according to the receiving contract before trusted use.
+- Executable SQL MUST NOT be constructed from untrusted data through string concatenation.
+- Parameterized queries, ORM APIs, or equivalent safe mechanisms MUST be used for untrusted query values.
+- Secrets, tokens, passwords, and credentials SHOULD come from the project's approved configuration or secret-management mechanism.
+- User-facing errors MUST NOT expose stack traces, SQL statements, server paths, credentials, or unnecessary internal implementation details.
 
-## 5. Resources, Concurrency, And Performance
+Detailed security-sensitive behavior MUST follow `security-guidelines.md` when that reference is triggered by the skill.
 
-- Files, streams, network connections, database connections, locks, and similar resources must be released deterministically using the language or framework's ownership mechanism.
-- Do not rely on garbage collection to release resources.
-- External HTTP, RPC, database, or similar calls must have appropriate timeout behavior.
-- Retry only failures known to be retryable and only when a concrete retry strategy exists.
-- Do not retry non-idempotent operations without an explicit safeguard.
-- Operations that may be retried, redelivered, or executed more than once must provide an idempotency mechanism when duplicate execution could cause incorrect behavior.
-- Avoid unnecessary shared mutable state.
-- When shared mutable state is required, use an explicit concurrency strategy appropriate to the runtime and data model.
-- Do not assume single-threaded, ordered, or exactly-once execution without evidence from the actual execution model.
-- Avoid obviously inefficient behavior such as repeated I/O, repeated parsing or serialization, N+1 access patterns, unnecessary scans inside loops, unbounded accumulation, or avoidable high-complexity algorithms.
-- Choose data structures and algorithms appropriate to the actual workload.
-- Do not introduce complex optimization without evidence that the expected workload requires it.
+### Resources, Concurrency, And Performance
 
-## 6. Testing And Verification
+- Files, streams, network connections, database connections, locks, and similar owned resources MUST be released deterministically through the language or framework's ownership mechanism.
+- Garbage collection MUST NOT be relied upon for deterministic resource release.
+- External HTTP, RPC, database, or similar calls MUST have bounded timeout behavior appropriate to their contract.
 
-- Code changes must be verified with relevant automated tests whenever the project provides a runnable test path.
-- New business behavior must include corresponding tests.
-- Bug fixes should include a regression test reproducing the original failure when practical.
-- Tests must be independent and must not depend on execution order or shared mutable state.
-- Use mocks or test doubles to isolate genuine external dependencies such as databases, networks, third-party services, clocks, or nondeterministic infrastructure.
-- Do not mock the core logic of the unit being tested.
-- Assert externally meaningful behavior rather than unnecessary private implementation details.
-- Do not over-specify call counts, private state, or internal sequencing unless those details are part of the behavior being verified.
-- Do not weaken a test merely to make the current implementation pass.
-- When a test fails after a change, first determine whether the production code is wrong, the test is wrong, or the requirement intentionally changed.
-- Without evidence that the contract changed, do not delete assertions, relax expected results, add meaningless mocks, skip tests, or disable coverage to accommodate the implementation.
-- Run focused tests first, then broader regression or build checks according to the affected scope.
-- A successful code review or static inspection does not replace runnable verification when runnable verification is available.
+**TRIGGER:** Automatic retry behavior is introduced.
 
-## 7. Code Smells And Scope Boundaries
+- The failure MUST be established as retryable.
+- The retry strategy MUST have defined limits and semantics.
+- A side-effecting operation MUST be idempotent or otherwise protected against duplicate execution before automatic retry is enabled.
 
-Code smells are investigation signals. Their presence does not automatically authorize refactoring, especially outside the current task scope.
+**TRIGGER:** An operation may be retried, redelivered, or executed more than once and duplicate execution could produce incorrect behavior.
+
+- An idempotency or equivalent duplicate-protection mechanism MUST be provided.
+
+- Shared mutable state SHOULD be avoided.
+- When shared mutable state is required, an explicit concurrency strategy MUST protect the relevant invariants.
+- Single-threaded, ordered, or exactly-once execution MUST NOT be assumed without evidence from the actual execution model.
+- Repeated I/O, repeated parsing or serialization, N+1 access patterns, avoidable scans inside loops, unbounded accumulation, and clearly inappropriate algorithmic complexity SHOULD be avoided.
+- Data structures and algorithms SHOULD match the actual workload.
+
+## 5. Testing And Verification
+
+- Code changes MUST be verified with relevant automated tests when the project provides a runnable test path.
+- New business behavior MUST have corresponding tests.
+- Bug fixes SHOULD include a regression test reproducing the original failure when a practical test path exists.
+- Tests MUST be independent and MUST NOT depend on execution order or shared mutable state.
+- Mocks or test doubles SHOULD isolate genuine external dependencies such as databases, networks, third-party services, clocks, or nondeterministic infrastructure.
+- The core logic being tested MUST NOT be mocked away.
+- Tests SHOULD assert externally meaningful behavior rather than unnecessary private implementation details.
+- Call counts, private state, or internal sequencing SHOULD NOT be asserted unless those details are part of the behavior contract.
+- A test MUST NOT be weakened merely to make the current implementation pass.
+
+**TRIGGER:** An existing test fails after a production change.
+
+- It MUST first be established whether the production behavior is wrong, the test is wrong, or the contract intentionally changed.
+- Assertions, expected results, mocks, skipped tests, or coverage MUST NOT be weakened without evidence that the contract or test is actually incorrect.
+
+Focused tests SHOULD run before broader regression or build checks. Runnable verification MUST NOT be replaced by static inspection when relevant runnable verification is available.
+
+## 6. Code Smells And Boundary Rules
+
+Code smells are investigation signals. A smell MUST NOT be treated as sufficient evidence that refactoring is required.
+
+**TRIGGER:** A smell is encountered within the scope of a change.
+
+- Its concrete impact MUST be established before behavior or structure is changed because of the smell.
+- Unrelated smells MUST NOT be fixed during a focused task merely because they were discovered.
 
 | Smell | Description |
 |---|---|
-| Type guessing | Inferring a type from string prefixes, substrings, naming patterns, or other indirect signals instead of using an explicit type representation. |
+| Type guessing | Inferring a type from string prefixes, substrings, naming patterns, or other indirect signals instead of using explicit type information. |
 | Regex overreach | Extracting structured business data with regular expressions when a structured parser or typed representation should own the problem. |
 | Repeated downcasting | Repeated `instanceof`, subtype probing, or downcasting against an abstraction instead of using its contract. |
 | Dual-key fallback | Reading the same semantic value from multiple keys to support compatibility that has not been demonstrated as necessary. |
 | Sentinel value | Using `null`, zero, empty strings, arbitrary constants, or otherwise valid-looking values to represent absence, failure, or hidden state. |
 | Repeated switch | Maintaining the same enum or type branching logic in multiple places, causing one business rule to have multiple owners. |
 | Dead code | Code with no meaningful execution path or code made obsolete by the current implementation. |
-| Parallel replacement | Introducing `XxxV2`, `newXxx()`, `calculateImpl2()`, or similar parallel implementations instead of replacing obsolete behavior, leaving multiple versions of the same capability behind. |
+| Parallel replacement | Introducing `XxxV2`, `newXxx()`, `calculateImpl2()`, or similar parallel implementations instead of replacing obsolete behavior. |
 | God class | A class containing multiple unrelated responsibilities and multiple independent reasons to change. |
-| Nullable-field union | Modeling mutually exclusive states with multiple nullable fields, allowing invalid combinations such as all fields being absent or multiple alternatives being present simultaneously. |
-| Shared mutable state | Mutable state accessed concurrently without a clear ownership or synchronization strategy. |
+| Nullable-field union | Modeling mutually exclusive states with multiple nullable fields that permit invalid combinations. |
+| Shared mutable state | Mutable state accessed concurrently without clear ownership or synchronization. |
 | Feature envy | Logic that primarily operates on another object's data and likely belongs with that object's responsibility. |
 | Data clump | The same semantically related group of values repeatedly traveling together without a meaningful domain representation. |
-| Primitive obsession | Repeated use of primitives for concepts such as money, currency, identifiers, or other values whose invariants or semantics justify a domain type. |
+| Primitive obsession | Repeated primitives for concepts whose invariants or semantics justify a domain type. |
 | Long parameter list | A large parameter list caused by mixed responsibilities or an unmodeled coherent domain concept. |
 | Flag argument | A boolean or mode parameter that switches a method between substantially different responsibilities. |
-| Divergent change | One component changes for multiple unrelated reasons, indicating mixed responsibilities. |
+| Divergent change | One component changes for multiple unrelated reasons. |
 | Shotgun surgery | One logical change requires unnecessary edits across many components because responsibility is scattered. |
 | Middleman | A component that only forwards calls and provides no meaningful responsibility, boundary, policy, or abstraction. |
 | Swallowed exception | A caught failure that is neither handled, appropriately recorded, nor rethrown. |
 | Exception-driven control flow | Using exceptions to represent expected business alternatives. |
 | Magic number | A business-significant numeric literal whose meaning is not expressed by a named constant, enum, or domain type. |
-| Deep nesting | Control flow whose nesting materially increases cognitive complexity and can be clarified through guards, decomposition, or responsibility extraction. |
-| Exposed mutable collection | Returning an internal mutable collection in a way that allows callers to bypass the owning object's invariants. |
-| Circular dependency | Modules or components depending on each other in both directions, indicating unclear responsibility boundaries. |
+| Deep nesting | Control flow whose nesting materially increases cognitive complexity. |
+| Exposed mutable collection | Returning an internal mutable collection so callers can bypass the owning object's invariants. |
+| Circular dependency | Modules or components depending on each other in both directions. |
 | Anemic domain model | Domain data with meaningful behavior whose rules are instead scattered through unrelated external services or utilities. |
-| Copy-pasted near-duplicate logic | Multiple implementations representing the same behavior with only minor parameter or structural differences. |
-| Test accommodation | Weakening assertions, changing expected behavior without evidence, adding meaningless mocks, or disabling tests merely to make an incorrect implementation pass. |
-| Speculative abstraction | Introducing an interface, strategy, factory, extension point, configuration option, or hierarchy without a current variation point or consumer. |
-| Speculative compatibility | Adding fallback keys, aliases, dual reads, legacy branches, or other compatibility behavior without evidence of an actual compatibility requirement. |
-| Speculative defense | Adding null checks, catch blocks, retries, fallback values, or validation for states that the verified contract does not permit or that have no concrete handling strategy. |
-| Public API leakage | Exposing implementation details or widening visibility without an actual external or cross-module consumer. |
-
-Before refactoring a smell, identify the concrete problem it causes.
-
-Do not fix unrelated smells during a focused task.
+| Copy-pasted near-duplicate logic | Multiple implementations representing the same behavior with only minor structural differences. |
+| Test accommodation | Weakening assertions, expected behavior, or test isolation merely to make an incorrect implementation pass. |
+| Speculative abstraction | Introducing an abstraction without a current variation point, boundary, or concrete benefit. |
+| Speculative compatibility | Adding compatibility behavior without evidence of an actual compatibility requirement. |
+| Speculative defense | Adding guards, catches, retries, or fallbacks for states the verified contract does not permit or without defined handling semantics. |
+| Public API leakage | Exposing implementation details or widening visibility without an actual consumer. |
 
 ### Boundary Exceptions
 
-The exceptions in this section apply only to data-modeling and representation rules.
+The following **EXCEPTION** applies only to data-modeling and representation rules.
 
-Rules requiring enums or closed types, typed domain objects, value objects, typed JSON representations, or avoidance of dynamic structures primarily constrain module and architectural boundaries.
+Protocol adapters, external-input parsers, generic data-access infrastructure, LLM or plan parsers, and inherently dynamic integrations MAY internally use maps, dynamic JSON nodes, weakly typed parameter containers, regular expressions, or external-protocol DTO shapes when those representations fit the boundary.
 
-Protocol adapters, external-input parsers, generic data-access infrastructure, LLM or plan parsers, and inherently dynamic integrations may reasonably use maps, dynamic JSON nodes, weakly typed parameter containers, or regular expressions internally when those representations fit the boundary.
+Once stable business data leaves that boundary, it MUST be converted to the appropriate typed representation.
 
-External protocols may also require DTO or payload shapes that would not otherwise be chosen as internal domain models.
+This exception MUST NOT relax correctness, testing, exception handling, logging, security, input validation, resource management, or concurrency requirements.
 
-Once stable business data leaves such a boundary, convert it to the appropriate typed representation.
-
-These exceptions do not exempt any layer from:
-
-- correctness and verification requirements;
-- testing requirements;
-- exception-handling requirements;
-- logging requirements;
-- security and input-validation requirements;
-- resource-management requirements;
-- concurrency requirements.
-
-Do not refactor code merely because a `Map`, dynamic JSON node, regular expression, or weakly typed structure appears inside a boundary where its use is explicitly permitted.
-
-Before changing such code, first establish that the representation actually violates a rule applicable to that layer.
+A dynamic structure MUST NOT be refactored merely because it exists inside a boundary where this exception applies. The applicable rule violation and concrete impact MUST first be established.
