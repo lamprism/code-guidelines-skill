@@ -37,6 +37,10 @@ An **EXCEPTION** MUST be explicit, address a concrete requirement or constraint,
 
 `references/security-guidelines.md` MUST be applied when a task changes or introduces a trust boundary or security-sensitive behavior, including authentication, authorization, credentials, externally controlled input, externally reachable APIs, server-side network access, files, serialization, dynamic execution, cryptography, sensitive data, privileged operations, dependencies, build security, artifact integrity, or deployment security.
 
+`references/rest-api-guidelines.md` MUST be applied when a task introduces, changes, reviews, or diagnoses an HTTP API contract, including resource design, URI structure, HTTP methods, request or response models, status codes, errors, collections, filtering, pagination, idempotency, compatibility, or API evolution.
+
+`references/database-guidelines.md` MUST be applied when a task introduces, changes, reviews, or diagnoses persistence behavior, including data modeling, schema design, persistence models, migrations, queries, indexes, transactions, concurrency, or data lifecycle.
+
 `references/java-guidelines.md` MUST be applied when Java, Kotlin, or related JVM technologies are involved.
 
 `references/project-guidelines.md` MUST be applied when discovering, establishing, evaluating, or modifying repository-specific engineering rules.
