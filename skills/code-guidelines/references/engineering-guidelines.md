@@ -26,10 +26,9 @@ Current verified requirements MUST take precedence over hypothetical future need
 - A class SHOULD have one coherent responsibility and one primary reason to change.
 - A method SHOULD perform one coherent responsibility at one abstraction level.
 - Persistence, business rules, protocol conversion, DTO construction, presentation logic, logging policy, and infrastructure concerns SHOULD NOT be mixed in one method without a concrete reason.
-- Guard clauses SHOULD be used when they materially reduce unnecessary nesting.
 - Business rules SHOULD reside in objects or components that own the relevant domain responsibility instead of being duplicated across callers.
 - Callers SHOULD request behavior from the object that owns a rule rather than extracting state and reimplementing the rule externally.
-- Collaborator object graphs SHOULD NOT be traversed unnecessarily through chains such as `a.getB().getC().getD()`.
+- Collaborator object graphs SHOULD NOT be traversed unnecessarily through long chains of indirect access.
 - Components SHOULD depend on the narrowest capability required for their responsibility.
 - High-level policy SHOULD NOT depend unnecessarily on concrete infrastructure details.
 - Composition SHOULD be preferred over implementation inheritance.
@@ -48,7 +47,6 @@ Cross-currency values MUST NOT be silently converted at a 1:1 rate or relabeled 
 
 SOLID principles SHOULD guide responsibility and dependency decisions but MUST NOT be used as justification for speculative abstraction.
 
-- **Single Responsibility:** one component SHOULD own one coherent responsibility and one primary reason to change.
 - **Open/Closed:** when a real variation point already exists and branching would otherwise spread across the system, adding an implementation or strategy SHOULD be preferred over duplicating or expanding equivalent branches in multiple locations.
 - **Liskov Substitution:** an abstraction SHOULD NOT require repeated subtype probing, selective `isXxx()` checks, or unsafe downcasts for normal use.
 - **Interface Segregation:** consumers SHOULD depend only on operations they actually require.
@@ -172,7 +170,7 @@ Regular expressions SHOULD NOT be used when explicit parsing, a structured parse
 ### Typed Domain Boundaries
 
 - Stable business data crossing module or architectural boundaries MUST use named typed objects.
-- Raw JSON strings, `Map<String, Object>`, or generic `Object` values MUST NOT carry known business semantics across business-module boundaries.
+- Raw JSON strings, generic maps, or untyped object containers MUST NOT carry known business semantics across business-module boundaries.
 - External representations SHOULD be parsed once at the boundary, processed as typed objects internally, and serialized once at the output boundary.
 - The same business payload SHOULD NOT be repeatedly parsed and serialized through intermediate layers.
 
@@ -195,6 +193,9 @@ Open row structures from intentionally generic data sources, such as arbitrary S
 - Collection-returning APIs MUST return an empty collection rather than `null`.
 - Null handling MUST NOT be added when it contradicts a verified non-null contract.
 - Valid-looking domain values MUST NOT substitute for absence, failure, unsupported state, or fallback behavior.
+- Internal mutable collections MUST NOT be exposed directly when callers could bypass the owning object's invariants.
+- Defensive copies, immutable collections, or encapsulated operations SHOULD be used when callers must not mutate internal state.
+- Code MUST NOT rely on iteration order from a collection implementation that does not guarantee it.
 
 ### Persistence And Data Boundaries
 
@@ -223,69 +224,35 @@ Open row structures from intentionally generic data sources, such as arbitrary S
 
 ### Logging
 
-- Application logging MUST use the project's logging framework rather than ad hoc printing.
-- `ERROR` SHOULD represent failures that require intervention or cannot recover at the current level.
-- `WARN` SHOULD represent abnormal conditions that can be recovered or tolerated automatically.
-- `INFO` SHOULD record meaningful business or lifecycle events.
-- `DEBUG` SHOULD be limited to development and diagnostic detail.
-- Important `ERROR` and `WARN` logs MUST contain enough context to investigate the failure, including relevant identifiers, key inputs when safe, failure reason, and exception details when applicable.
-- Core business paths SHOULD record enough meaningful state transition context to support investigation when the project logging model supports it.
-- High-frequency non-critical paths SHOULD NOT emit noisy logs that obscure useful information.
-- Trace IDs, request IDs, correlation IDs, or equivalent identifiers SHOULD be preserved when the architecture provides them.
-- Credentials, secrets, tokens, passwords, and unnecessarily sensitive data MUST NOT be logged.
-- Console printing or direct stack-trace printing MUST NOT substitute for structured logging.
+When logging, metrics, traces, health checks, runtime configuration, startup, shutdown, or alerts are part of the change, apply `observability-guidelines.md`. That reference owns signal design, levels, fields, context propagation, redaction, cardinality, lifecycle, and alert semantics.
 
 ### Security And External Input
 
-- External input MUST be treated as untrusted unless a verified trusted-boundary contract establishes otherwise.
-- HTTP parameters, uploads, third-party responses, messages, and other external data MUST be validated according to the receiving contract before trusted use.
-- Executable SQL MUST NOT be constructed from untrusted data through string concatenation.
-- Parameterized queries, ORM APIs, or equivalent safe mechanisms MUST be used for untrusted query values.
-- Secrets, tokens, passwords, and credentials SHOULD come from the project's approved configuration or secret-management mechanism.
-- User-facing errors MUST NOT expose stack traces, SQL statements, server paths, credentials, or unnecessary internal implementation details.
-
-Detailed security-sensitive behavior MUST follow `security-guidelines.md` when that reference is triggered by the skill.
+When a change crosses a trust boundary or handles untrusted input, credentials, files, serialization, network access, or security-sensitive behavior, apply `security-guidelines.md`. That reference owns trust boundaries, validation, injection, authentication, authorization, secrets, abuse controls, and security-specific verification.
 
 ### Resources, Concurrency, And Performance
+
+When the execution model includes threads, asynchronous work, parallelism, scheduling, structured asynchronous scopes, or shared mutable state, also apply `concurrency-guidelines.md`. That reference owns execution, ownership, liveness, capacity, cancellation, ordering, and interleaving rules.
 
 - Files, streams, network connections, database connections, locks, and similar owned resources MUST be released deterministically through the language or framework's ownership mechanism.
 - Garbage collection MUST NOT be relied upon for deterministic resource release.
 - External HTTP, RPC, database, or similar calls MUST have bounded timeout behavior appropriate to their contract.
 
-**TRIGGER:** Automatic retry behavior is introduced.
+**TRIGGER:** Automatic retry, redelivery, or repeated execution can occur and duplicate execution could produce incorrect behavior.
 
-- The failure MUST be established as retryable.
-- The retry strategy MUST have defined limits and semantics.
-- A side-effecting operation MUST be idempotent or otherwise protected against duplicate execution before automatic retry is enabled.
+- The retry or redelivery mechanism MUST have defined limits and semantics.
+- The failure MUST be established as retryable before automatic retry is enabled.
+- A side-effecting operation MUST be idempotent or otherwise protected against duplicate execution.
 
-**TRIGGER:** An operation may be retried, redelivered, or executed more than once and duplicate execution could produce incorrect behavior.
-
-- An idempotency or equivalent duplicate-protection mechanism MUST be provided.
-
-- Shared mutable state SHOULD be avoided.
-- When shared mutable state is required, an explicit concurrency strategy MUST protect the relevant invariants.
-- Single-threaded, ordered, or exactly-once execution MUST NOT be assumed without evidence from the actual execution model.
 - Repeated I/O, repeated parsing or serialization, N+1 access patterns, avoidable scans inside loops, unbounded accumulation, and clearly inappropriate algorithmic complexity SHOULD be avoided.
 - Data structures and algorithms SHOULD match the actual workload.
 
 ## 5. Testing And Verification
 
+When test strategy, fixtures, isolation, deterministic verification, contract testing, or flaky-test diagnosis is part of the change, apply `testing-guidelines.md`. That reference owns test scope, test design, fixtures, failure classification, and verification reporting.
+
 - Code changes MUST be verified with relevant automated tests when the project provides a runnable test path.
-- New business behavior MUST have corresponding tests.
-- Bug fixes SHOULD include a regression test reproducing the original failure when a practical test path exists.
-- Tests MUST be independent and MUST NOT depend on execution order or shared mutable state.
-- Mocks or test doubles SHOULD isolate genuine external dependencies such as databases, networks, third-party services, clocks, or nondeterministic infrastructure.
-- The core logic being tested MUST NOT be mocked away.
-- Tests SHOULD assert externally meaningful behavior rather than unnecessary private implementation details.
-- Call counts, private state, or internal sequencing SHOULD NOT be asserted unless those details are part of the behavior contract.
-- A test MUST NOT be weakened merely to make the current implementation pass.
-
-**TRIGGER:** An existing test fails after a production change.
-
-- It MUST first be established whether the production behavior is wrong, the test is wrong, or the contract intentionally changed.
-- Assertions, expected results, mocks, skipped tests, or coverage MUST NOT be weakened without evidence that the contract or test is actually incorrect.
-
-Focused tests SHOULD run before broader regression or build checks. Runnable verification MUST NOT be replaced by static inspection when relevant runnable verification is available.
+- Runnable verification MUST NOT be replaced by static inspection when relevant runnable verification is available.
 
 ## 6. Code Smells And Boundary Rules
 

@@ -172,6 +172,8 @@ Automatic retry MUST NOT be assumed safe solely because the transport can retry 
 
 **TRIGGER:** Concurrent updates can overwrite changes or violate a business invariant.
 
+Apply `concurrency-guidelines.md` when the API implementation also introduces asynchronous execution, background work, locks, queues, or shared mutable state. This section owns the client-visible contract; the concurrency reference owns the execution and lifecycle semantics.
+
 The API SHOULD expose or enforce explicit concurrency control appropriate to the requirement. Valid mechanisms MAY include entity versions, ETags, conditional requests, atomic operations, or database-enforced invariants.
 
 Silent last-write-wins behavior SHOULD NOT be used when it violates a verified consistency requirement.
@@ -231,6 +233,8 @@ The API SHOULD define an enforceable rate limit, quota, or equivalent resource c
 Client-visible limiting behavior SHOULD define retry semantics and SHOULD use standard HTTP mechanisms or an established project contract. Clients SHOULD NOT be required to infer throttling from arbitrary server failures.
 
 ### Observability
+
+Apply `observability-guidelines.md` when the API change adds or modifies server-side logs, metrics, traces, health, or alerts. This section owns the client-visible diagnostic contract.
 
 APIs SHOULD support correlation between client-visible failures and server-side diagnostics when operational investigation requires it.
 

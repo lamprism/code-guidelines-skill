@@ -79,19 +79,7 @@ A purely mechanical rule already enforced completely and unambiguously by toolin
 
 ## 3. Normative Project Rules
 
-Project-level rules MUST use the normative language defined by `../SKILL.md`.
-
-- **MUST** and **MUST NOT** MUST be used only for verified mandatory requirements.
-- **SHOULD** and **SHOULD NOT** SHOULD be used for established defaults that permit evidence-supported deviation.
-- **MAY** MUST be used only when a behavior is explicitly permitted but not required.
-- Conditional project rules SHOULD use **TRIGGER** when applicability cannot be stated unambiguously in the requirement itself.
-- Known exceptions to an otherwise applicable rule MUST be expressed explicitly and narrowly through **EXCEPTION**.
-- Lowercase words such as `must`, `should`, `may`, `prefer`, `normally`, `usually`, `when appropriate`, or `consider` SHOULD NOT be used to express normative force when an applicable BCP 14 keyword can state the intended strength precisely.
-
-**TRIGGER:** A project rule uses **SHOULD** or **SHOULD NOT**.
-
-- The deviation conditions SHOULD be inferable from the rule's rationale, stated tradeoff, or explicit **EXCEPTION**.
-- Preference or convenience alone MUST NOT justify deviation from the established default.
+Project-level rules MUST use the normative language and conditional-rule model defined by `../SKILL.md`. This document defines how project rules are admitted and maintained; it does not redefine the meanings of **MUST**, **SHOULD**, **MAY**, **TRIGGER**, or **EXCEPTION**.
 
 ## 4. Establishing And Maintaining Project Guidelines
 

@@ -242,6 +242,8 @@ Database transactions MUST NOT be assumed to provide atomicity across external s
 
 **TRIGGER:** Concurrent writes can cause lost updates, duplicate effects, invalid state transitions, or violated invariants.
 
+Apply `concurrency-guidelines.md` for the execution model, ownership, liveness, cancellation, and retry behavior. This section owns the persistence-specific question: which database or storage mechanism provides the required atomicity and consistency scope.
+
 The system MUST define a concurrency strategy appropriate to the invariant.
 
 Valid mechanisms MAY include optimistic locking, version fields, uniqueness constraints, atomic conditional updates, explicit database locking, or serialization through another verified mechanism.

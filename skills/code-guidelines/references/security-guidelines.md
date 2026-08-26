@@ -248,6 +248,8 @@ Applicable OWASP guidance, especially the OWASP Top 10 and OWASP Cheat Sheet Ser
 
 ## 7. Availability, Concurrency, And Abuse
 
+Apply `concurrency-guidelines.md` when the security property also depends on concurrent execution, replay control, resource capacity, or lifecycle. This section defines the security and abuse consequence; the concurrency reference defines the execution strategy.
+
 ### Abuse Protection
 
 **TRIGGER:** An externally reachable operation can be repeatedly invoked to guess credentials, enumerate protected resources, send repeated user-visible actions, create significant cost, consume scarce resources, or otherwise produce a verified abuse path.
@@ -308,6 +310,8 @@ Applicable OWASP guidance, especially the OWASP Top 10 and OWASP Cheat Sheet Ser
 - Development-only relaxed behavior MUST be explicitly scoped and MUST NOT become an implicit production fallback.
 
 ## 9. Security Verification
+
+Apply `testing-guidelines.md` for test scope, isolation, and failure classification; this section owns the security-specific allowed and denied cases.
 
 Security-sensitive behavior MUST be verified at the boundary where the security property is enforced.
 
