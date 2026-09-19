@@ -43,6 +43,37 @@ Fallback and degraded behavior MUST be explicit in a type, method name, result s
 
 Cross-currency values MUST NOT be silently converted at a 1:1 rate or relabeled as another currency.
 
+### Canonical Abstractions And Cohesive Extensions
+
+**TRIGGER:** A change adds or materially changes a public type, interface, codec, provider, binder, factory, adapter, or module for an existing capability, or establishes a new consumer-facing capability.
+
+- The existing contracts, definitions, callers, implementations, owners, and dependency directions MUST be inspected before a new public abstraction is introduced.
+- Each consumer-facing capability SHOULD have one canonical contract and one owning boundary. A new implementation, provider, adapter, decorator, or default implementation SHOULD extend or adapt that contract rather than create a parallel consumer-facing contract.
+- When no suitable existing contract exists, the capability MUST be designed around one new canonical contract and the smallest coherent set of supporting types required by its verified boundary. The canonical contract MUST be chosen before supporting types are split out.
+- Every new public type for that capability MUST have an explicitly distinct role, actual consumer or current contract, and named relationship to the canonical contract. If a type only separates an implementation step, renames an existing role, or duplicates another type's semantics, it MUST remain an implementation detail or MUST NOT be created.
+- Sibling public abstractions MUST NOT overlap in semantic responsibility, consumer role, lifecycle, or configuration meaning merely because the capability has several use cases. A capability MUST NOT be split into separate value, token, factory, registry, or implementation interfaces unless each has a distinct present-day responsibility and actual consumer.
+- An existing abstraction MUST NOT be reused merely to reduce the number of types when its semantics, lifecycle, ownership, dependency direction, or architectural boundary do not match the requirement. In that case, the mismatch and the reason an adapter or implementation of the existing contract is insufficient MUST be established before a new abstraction is added.
+- A new public abstraction MUST NOT be introduced when an existing contract can represent the behavior through an implementation, adapter, or composition without weakening its semantics.
+- Public types added under this trigger MUST have an actual consumer or an explicit current contract. Unwired parallel APIs, forwarding middlemen, and types that only rename or redistribute an existing responsibility MUST NOT remain.
+
+This rule does not require unrelated responsibilities to share one interface. A value parser, an opaque-token signer, and an HTTP binder MAY remain separate when their contracts, owners, lifecycle, or boundaries are materially different; the separation MUST be explicit and MUST NOT be justified only by naming or implementation convenience.
+
+### Module Boundaries And Dependency Direction
+
+For this guideline, a module is a repository- or architecture-defined unit with an intentional ownership or dependency boundary. A directory or namespace alone does not establish a module boundary.
+
+- A module SHOULD own a coherent domain, application, infrastructure, or integration responsibility and have a clear owner.
+- A module boundary SHOULD be introduced only for a verified ownership, lifecycle, deployment, security, change, or dependency boundary.
+- When a project defines a module boundary, cross-module access MUST use an explicitly owned and narrow contract. Internal implementation, persistence, framework, adapter, and mutable-state details SHOULD NOT leak across it.
+- Modules SHOULD depend on stable contracts and the modules that own them. They SHOULD NOT depend on another module's internal types or form circular dependencies.
+- Each business rule SHOULD have one authoritative owner. Other modules SHOULD request behavior through that owner rather than copying state and reimplementing the rule.
+- Shared modules SHOULD contain only stable concepts with multiple actual consumers. Feature-specific rules and one-consumer helpers SHOULD remain in their owning module.
+
+**TRIGGER:** A change adds, removes, or expands a cross-module dependency, public module surface, shared module, or module boundary.
+
+- The owner, dependency direction, contract, actual consumers, compatibility impact, and verification strategy MUST be established before the change is made.
+- A new shared module, facade, or abstraction MUST NOT be introduced solely to conceal visible coupling or anticipate hypothetical future reuse.
+
 ### SOLID, DRY, And Extensibility
 
 SOLID principles SHOULD guide responsibility and dependency decisions but MUST NOT be used as justification for speculative abstraction.
@@ -221,6 +252,30 @@ Open row structures from intentionally generic data sources, such as arbitrary S
 - The failure MUST be handled, appropriately recorded, or rethrown.
 - The original cause MUST be preserved when wrapping.
 - Broad catch blocks MUST NOT be added merely as defensive ceremony.
+
+### Failure Classification And Handling Decisions
+
+**TRIGGER:** A failure can be caught, translated, retried, compensated, degraded, or exposed to a caller.
+
+The failure MUST be classified before a handling decision is made. Classification SHOULD consider whether the failure is an expected domain outcome, who caused it, whether the operation is retryable, whether side effects may have occurred, and which layer owns the relevant contract. An exception type alone MUST NOT determine the decision.
+
+| Failure class | Typical evidence | Default handling |
+|---|---|---|
+| Expected business outcome | The state is valid and the contract models it as an alternative result | Return the established typed result or state; do not use exception-driven branching |
+| Invalid input, caller, or authorization | Boundary data violates the contract or the caller lacks permission | Reject at the owning boundary with stable failure semantics; do not retry |
+| Conflict or concurrency failure | A version, precondition, ownership, or invariant check fails | Expose an explicit conflict; retry only through a verified caller or operation policy |
+| Transient dependency failure | Timeout, temporary unavailability, throttling, or an explicitly retryable response | Retry only within bounded limits and with duplicate protection; otherwise translate and fail |
+| Permanent dependency or integration failure | Invalid credentials, unsupported protocol, invalid configuration, or non-retryable response | Translate to a stable integration failure and fail without blind retry |
+| Cancellation or interruption | An explicit stop, cancellation, deadline, or interruption signal | Propagate or restore the stop signal, clean up owned resources, and do not report success |
+| Programming or invariant failure | An impossible state, violated internal invariant, or evidence of a defect | Fail fast or propagate with context; do not catch and continue with a sentinel or fallback |
+| Resource or system failure | Capacity exhaustion, storage failure, process failure, or unavailable required infrastructure | Fail closed or use an explicit bounded degradation path; do not retry without a capacity policy |
+| Unknown or unclassified failure | Available evidence is insufficient to establish cause or recoverability | Preserve the cause, record or translate at the owning outer boundary, and do not invent recovery semantics |
+
+- A catch block MUST implement a concrete decision such as recovery, translation, compensation, or controlled termination. Logging alone MUST NOT be treated as handling.
+- Exception translation MUST occur at a meaningful architectural or protocol boundary and MUST preserve the original cause and stable recovery semantics.
+- A failure MUST NOT be converted into a successful result, an absence value, or a generic fallback merely to keep the caller running.
+- Cleanup MUST occur on both success and failure paths; cleanup failure MUST NOT silently erase the primary failure.
+- Apply the retry, timeout, fallback, resource, API, security, concurrency, and testing rules for the affected boundary. This classification section owns the decision model, not each boundary's detailed mechanism.
 
 ### Logging
 

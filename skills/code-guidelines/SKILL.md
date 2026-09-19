@@ -88,6 +88,8 @@ Before introducing any of the following, the stated present-day justification MU
 | Fallback or degradation | Verified failure mode and defined fallback semantics |
 | Retry | Verified retryable failure and safe or idempotent execution |
 | Public API | Actual consumer or explicit contract |
+| Parallel abstraction for an existing capability | Existing contract, owner, callers, semantic mismatch, and why an implementation or adapter cannot satisfy the requirement |
+| New capability without a suitable existing contract | One canonical contract, owning boundary, minimum coherent type set, actual consumers, and the distinct role of each public type |
 | Security exception | Applicable explicit **EXCEPTION** with all conditions satisfied |
 | Performance optimization | Requirement, expected scale, profiling, benchmark, or runtime evidence |
 
@@ -133,6 +135,8 @@ Suspicious-looking code, correlation, or an untested hypothesis MUST NOT be repo
 ### Feature Implementation
 
 Feature design MUST establish the owning domain concept, responsible component, affected contract, closest existing implementation, and existing extension point when one exists.
+
+For each consumer-facing capability, feature design MUST identify the canonical contract and its owner before adding a public type, interface, codec, provider, binder, factory, or adapter. When no suitable existing contract exists, the feature MUST first define one coherent new canonical contract and the minimum type set needed to implement it. New types for the same capability MUST have explicitly distinct roles such as contract, value model, implementation, adapter, or configuration; they MUST NOT independently define overlapping semantics. New implementations SHOULD extend or adapt the canonical contract rather than create a parallel public contract. A new sibling abstraction MAY be introduced only when an existing contract has a verified semantic, lifecycle, ownership, dependency-direction, or boundary mismatch, and the reason an implementation or adapter is insufficient MUST be established.
 
 Existing abstractions SHOULD be reused when they correctly represent the required behavior. A new abstraction MUST have a concrete present-day responsibility, boundary, variation point, decoupling benefit, or duplicated knowledge to justify it. Public API surface MUST be limited to actual consumers and verified contracts.
 
