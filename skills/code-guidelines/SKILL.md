@@ -70,6 +70,11 @@ Engineering conclusions MUST be supported by available evidence. Relevant eviden
 
 Verified facts MUST be distinguished from assumptions. An unverified assumption MUST NOT be presented as a confirmed root cause, contract, security property, performance characteristic, or project convention.
 
+**TRIGGER:** A performance, cost, or resource-saving comparison is reported.
+
+- Measured results MUST identify the baseline, workload, method, and relevant environment. Estimates MUST be labeled and state their basis.
+- External benchmark results or an implementation that was never built MUST NOT be presented as measured savings for the current change.
+
 **TRIGGER:** A material engineering decision depends on information that is not yet established.
 
 - Available code, configuration, tests, definitions, documentation, and runtime evidence MUST be inspected before the missing fact is assumed.
@@ -95,6 +100,12 @@ Before introducing any of the following, the stated present-day justification MU
 
 Hypothetical future requirements MUST NOT justify additional architecture.
 
+**TRIGGER:** A proposed change adds material complexity solely to address a speculative or very low-likelihood race or security edge case that is not required by a verified contract, applicable security baseline, or evidence-backed vulnerability.
+
+- Before proceeding, explain the concrete failure mode, the evidence for or against its likelihood, and the implementation and ongoing maintenance or operational costs to the user.
+- The user's buy-in MUST be obtained before adding this complexity.
+- This gate MUST NOT delay controls required by a verified contract, applicable security baseline, or evidence-backed vulnerability.
+
 ## 3. Engineering Workflow
 
 Before making a material behavior-changing decision, the following MUST be established or inspected as applicable:
@@ -107,6 +118,8 @@ Before making a material behavior-changing decision, the following MUST be estab
 6. Relevant callers, callees, tests, and analogous implementations.
 7. Verified facts and remaining assumptions.
 8. The smallest change that satisfies the verified requirement.
+
+The affected scope MUST include all caller, test, fixture, configuration, and export updates needed to preserve or intentionally change the verified contract. Reducing diff size MUST NOT leave necessary updates incomplete.
 
 If an unresolved interpretation could affect destructive operations, money, permissions, security, persistent data, a public contract, or concurrency semantics, the ambiguity MUST be resolved before implementation. For lower-impact ambiguity, state the assumption and choose the smallest reversible path.
 
@@ -150,6 +163,10 @@ Patterns, stylistic preference, arbitrary metrics, or hypothetical extensibility
 
 ### Code Review
 
+Review scope MUST follow the affected contract and execution path rather than stop at the diff. Relevant definitions, callers, callees, consumers, and tests MUST be inspected, including unchanged files when they determine the changed behavior.
+
+Scale and performance findings MUST be evaluated against verified workload requirements and deployment evidence. Any remaining workload assumptions MUST be identified as unverified.
+
 Review findings MUST be evidence based and prioritized by impact:
 
 1. Correctness and data integrity.
@@ -161,7 +178,12 @@ Review findings MUST be evidence based and prioritized by impact:
 7. Maintainability.
 8. Performance problems supported by evidence.
 
-Code smells are investigation signals, not automatic defects. A substantive finding MUST identify concrete evidence and explain the actual or likely impact.
+Code smells are investigation signals, not automatic defects. A substantive finding MUST identify concrete evidence, a triggering scenario or violated contract, and the actual or likely impact. The proposed correction SHOULD address the cause with the smallest justified change.
+
+**TRIGGER:** A repository or module audit is requested.
+
+- Map the scoped entry points, key data flows, and dependency boundaries before prioritizing findings.
+- Prioritize inspection depth by risk and impact. The report MUST identify the inspected scope and any significant areas or checks left unverified.
 
 ### Security-Sensitive Changes
 

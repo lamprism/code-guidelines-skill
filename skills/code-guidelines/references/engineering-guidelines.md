@@ -11,9 +11,16 @@ Current verified requirements MUST take precedence over hypothetical future need
 - New abstractions, interfaces, strategies, factories, extension points, or configuration mechanisms MUST NOT be introduced solely for hypothetical future flexibility.
 - An abstraction SHOULD be introduced only when it provides a concrete present-day benefit such as reducing real coupling, removing duplicated knowledge, separating an actual responsibility, or representing a real variation point.
 - The presence of a `switch`, `Map`, literal, concrete library call, or similar implementation construct MUST NOT by itself justify refactoring.
-- Established repository patterns SHOULD be reused when they correctly fit the requirement.
 - Design complexity SHOULD match the current problem. Additional layers, interfaces, or configuration surfaces MUST have concrete justification.
 - Readability SHOULD take precedence over compact or clever code.
+
+Before adding code, the following options SHOULD be evaluated in order, stopping at the first that fully satisfies the verified requirements, applicable contracts, architectural boundaries, and established repository conventions:
+
+1. Use existing behavior or configuration when it already provides the required capability.
+2. Reuse a suitable repository component, helper, service, or pattern.
+3. Use a standard-library or native platform capability.
+4. Use an existing project dependency.
+5. Add the smallest implementation needed for the remaining requirement.
 
 **TRIGGER:** A change introduces complexity primarily for performance reasons.
 
@@ -148,6 +155,11 @@ Obsolete behavior SHOULD be replaced directly when replacement is the requiremen
 - Documentation comments MUST use the language's standard documentation form.
 - Unexplained ticket IDs, requirement labels, review versions, or internal reference codes MUST NOT substitute for explaining the underlying reason.
 - Obsolete comments MUST be removed when the implementation changes.
+
+**TRIGGER:** A deliberate simplification or workaround is retained with a known operational or behavioral limit.
+
+- The rationale, limit, and concrete condition for revisiting the decision SHOULD be recorded using the project's existing comments or decision records.
+- A comment or decision record MUST NOT by itself establish an exception to an applicable requirement.
 
 ### Language And Characters
 
@@ -312,6 +324,8 @@ When test strategy, fixtures, isolation, deterministic verification, contract te
 ## 6. Code Smells And Boundary Rules
 
 Code smells are investigation signals. A smell MUST NOT be treated as sufficient evidence that refactoring is required.
+
+Imports, variables, and functions made unused by the requested change MUST be removed. Unrelated pre-existing dead code MUST remain unchanged.
 
 **TRIGGER:** A smell is encountered within the scope of a change.
 
